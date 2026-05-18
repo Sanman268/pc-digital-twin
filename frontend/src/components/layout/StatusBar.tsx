@@ -2,20 +2,24 @@ import { useGatewayStatus } from '../../hooks/useGatewayStatus'
 
 export default function StatusBar() {
   const status = useGatewayStatus()
-  const dot = status?.connected ? '#00ff88' : '#ff3333'
   return (
     <footer style={{
-      padding: '8px 16px',
-      borderTop: '1px solid #222',
       display: 'flex',
-      gap: 12,
+      gap: 16,
       alignItems: 'center',
-      fontSize: 12,
+      padding: '8px 24px',
+      borderTop: '1px solid var(--border)',
+      background: 'var(--bg-card)',
+      fontSize: 11,
+      color: 'var(--text-dim)',
     }}>
-      <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: dot }} />
-      <span>{status?.connected ? 'BLE connected' : 'BLE disconnected'}</span>
-      {status?.node_id && <span style={{ opacity: 0.6 }}>node: {status.node_id}</span>}
-      {status?.last_seen && <span style={{ opacity: 0.6 }}>last seen: {status.last_seen}</span>}
+      <span>asset <span className="mono muted">{status?.node_id ?? 'PC_CASE_001'}</span></span>
+      <span>·</span>
+      <span>gateway <span className="mono muted">localhost:8000</span></span>
+      <span>·</span>
+      <span>influx <span className="mono muted">localhost:8086</span></span>
+      <span style={{ flex: 1 }} />
+      <span className="dim">PC Digital Twin · MIT</span>
     </footer>
   )
 }

@@ -182,3 +182,14 @@
   on physical bump. `INFLUXDB_TOKEN` set; gateway running; Influx + Vite
   + GLB model all green. Screenshot:
   `docs/results/v0.1.0-dashboard.png`.
+- **2026-05-19 (v0.2.0)** — Dashboard polish pass. 3D viewer: case
+  rotated upright (+90° X), drei `Environment` for studio IBL,
+  `ContactShadows` for grounding, `Bounds` auto-framing, smoothed
+  OrbitControls with damping + bounded zoom, auto-rotate overlay
+  button. Frontend redesign: dark theme via CSS variables in
+  `styles.css`, dedicated `MetricTile` KPI strip (Temp/Humidity/Pressure
+  /Vibration) sharing a `useLatest` poll hook, card-based layout,
+  gradient-filled area charts with proper tooltips/units, refined
+  Header with live status pill + relative `last_seen`, polished
+  Diagnostics panel with empty/loading/error states. No backend
+  changes.
