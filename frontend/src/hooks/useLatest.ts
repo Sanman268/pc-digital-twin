@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import type { LatestSnapshot } from '../types/sensor'
+import { useSettings } from '../settings/SettingsContext'
 
-export function useLatest(intervalMs = 5000) {
+export function useLatest() {
+  const { pollIntervalMs, paused, refreshTick } = useSettings()
   const [latest, setLatest] = useState<LatestSnapshot | null>(null)
 
   useEffect(() => {
@@ -16,9 +18,10 @@ export function useLatest(intervalMs = 5000) {
       }
     }
     load()
-    const id = setInterval(load, intervalMs)
+    if (paused) return () => { cancelled = true }
+    const id = setInterval(load, pollIntervalMs)
     return () => { cancelled = true; clearInterval(id) }
-  }, [intervalMs])
+  }, [pollIntervalMs, paused, refreshTick])
 
   return latest
 }

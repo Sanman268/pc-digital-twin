@@ -85,6 +85,24 @@ button.primary {
 }
 button.primary:hover { background: #1aff99; border-color: #1aff99; }
 
+select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 28px 6px 10px;
+  background-color: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%239aa4b2'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+select:hover { border-color: #3a475e; }
+select:focus { outline: none; border-color: var(--accent); }
+
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);

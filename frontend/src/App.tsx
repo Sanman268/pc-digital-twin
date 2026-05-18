@@ -1,5 +1,6 @@
 import Header from './components/layout/Header'
 import StatusBar from './components/layout/StatusBar'
+import Controls from './components/Controls'
 import MetricTile from './components/MetricTile'
 import TemperatureChart from './components/charts/TemperatureChart'
 import HumidityChart from './components/charts/HumidityChart'
@@ -8,6 +9,7 @@ import AirQualityChart from './components/charts/AirQualityChart'
 import PCTwinViewer from './components/twin3d/PCTwinViewer'
 import DiagnosticsPanel from './components/diagnostics/DiagnosticsPanel'
 import { useLatest } from './hooks/useLatest'
+import { SettingsProvider } from './settings/SettingsContext'
 
 function tempAccent(t?: number) {
   if (t == null) return 'var(--offline)'
@@ -16,7 +18,7 @@ function tempAccent(t?: number) {
   return 'var(--accent)'
 }
 
-export default function App() {
+function Dashboard() {
   const latest = useLatest()
 
   return (
@@ -33,7 +35,8 @@ export default function App() {
         width: '100%',
         margin: '0 auto',
       }}>
-        {/* KPI strip */}
+        <Controls />
+
         <section style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
@@ -70,7 +73,6 @@ export default function App() {
           />
         </section>
 
-        {/* 3D viewer + chart grid */}
         <section style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
@@ -92,7 +94,6 @@ export default function App() {
           </div>
         </section>
 
-        {/* Diagnostics */}
         <section>
           <DiagnosticsPanel />
         </section>
@@ -100,5 +101,13 @@ export default function App() {
 
       <StatusBar />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <SettingsProvider>
+      <Dashboard />
+    </SettingsProvider>
   )
 }

@@ -193,3 +193,14 @@
   Header with live status pill + relative `last_seen`, polished
   Diagnostics panel with empty/loading/error states. No backend
   changes.
+- **2026-05-19 (v0.2.1)** — Dashboard interactivity. Added a global
+  `SettingsContext` and a new `Controls` bar with: history range
+  selector (5m / 15m / 1h / 6h / 24h), refresh-interval selector
+  (1s–30s), Pause/Resume toggle, and a manual ↻ Refresh button. All
+  data-fetching hooks (`useSensorData`, `useLatest`) now read from
+  the context, so changing range or pausing freezes all KPI tiles,
+  charts, AND the 3D viewer's sensor-state color in sync.
+  `refreshTick` counter triggers atomic re-fetch across hooks. 3D
+  viewer migrated from its own polling loop to the shared
+  `useLatest` hook. Frontend-only — no backend changes. Screenshot:
+  `docs/results/v0.2.1-dashboard.png`.

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import type { HistoryPoint } from '../types/sensor'
+import { useSettings } from '../settings/SettingsContext'
 
-export function useSensorData(field: string, range = '1h', intervalMs = 5000) {
+export function useSensorData(field: string) {
+  const { pollIntervalMs, historyRange, paused, refreshTick } = useSettings()
   const [data, setData] = useState<HistoryPoint[]>([])
   const [error, setError] = useState<unknown>(null)
 
@@ -10,16 +12,19 @@ export function useSensorData(field: string, range = '1h', intervalMs = 5000) {
     let cancelled = false
     const load = async () => {
       try {
-        const res = await api.get<HistoryPoint[]>('/sensor/history', { params: { field, range } })
+        const res = await api.get<HistoryPoint[]>('/sensor/history', {
+          params: { field, range: historyRange },
+        })
         if (!cancelled) setData(res.data)
       } catch (e) {
         if (!cancelled) setError(e)
       }
     }
     load()
-    const id = setInterval(load, intervalMs)
+    if (paused) return () => { cancelled = true }
+    const id = setInterval(load, pollIntervalMs)
     return () => { cancelled = true; clearInterval(id) }
-  }, [field, range, intervalMs])
+  }, [field, historyRange, pollIntervalMs, paused, refreshTick])
 
   return { data, error }
 }

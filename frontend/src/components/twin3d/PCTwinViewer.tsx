@@ -8,9 +8,8 @@ import {
   Bounds,
 } from '@react-three/drei'
 import * as THREE from 'three'
-import { api } from '../../lib/api'
-import type { LatestSnapshot } from '../../types/sensor'
 import { useGatewayStatus } from '../../hooks/useGatewayStatus'
+import { useLatest } from '../../hooks/useLatest'
 import { applySensorState, deriveState } from './SensorOverlay'
 
 // Model authored lying on its side; rotate +90 deg around X to stand it up.
@@ -34,23 +33,8 @@ function PCModel({ url, state }: { url: string; state: ReturnType<typeof deriveS
 
 export default function PCTwinViewer() {
   const status = useGatewayStatus()
-  const [latest, setLatest] = useState<LatestSnapshot | null>(null)
+  const latest = useLatest()
   const [autoRotate, setAutoRotate] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      try {
-        const res = await api.get<LatestSnapshot>('/sensor/latest')
-        if (!cancelled) setLatest(res.data)
-      } catch {
-        if (!cancelled) setLatest(null)
-      }
-    }
-    load()
-    const id = setInterval(load, 5000)
-    return () => { cancelled = true; clearInterval(id) }
-  }, [])
 
   const state = deriveState(latest, status?.connected ?? false)
 
