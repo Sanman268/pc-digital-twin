@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+*.log
+
+# IDE / harness
+.idea/
+.vscode/
+.vs/
+.claude/
+*.iml
+*.sln
+*.suo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Influx / Docker volumes
+influxdb_data/
+
+# Firmware build artifacts (Simplicity Studio)
+firmware/Debug/
+firmware/Release/
+firmware/GNU ARM v*/
+*.o
+*.d
+*.axf
+*.bin
+
+# NOTE: frontend/public/models/pc_case.glb IS committed so the
+# dashboard renders out-of-the-box on `git clone`.

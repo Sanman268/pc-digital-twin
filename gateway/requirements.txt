@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+bleak
+influxdb-client
+pydantic>=2
+pydantic-settings
+httpx
+python-dotenv

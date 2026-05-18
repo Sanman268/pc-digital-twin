@@ -1,0 +1,91 @@
+
+(venv) F:\CodeStuff\IoT\Home_lab\pc_digital_twin\gateway>python main.py
+←[32mINFO←[0m:     Will watch for changes in these directories: ['F:\\CodeStuff\\IoT\\Home_lab\\pc_digital_twin\\gateway']
+←[32mINFO←[0m:     Uvicorn running on ←[1mhttp://0.0.0.0:8000←[0m (Press CTRL+C to quit)
+←[32mINFO←[0m:     Started reloader process [←[36m←[1m4320←[0m] using ←[36m←[1mWatchFiles←[0m
+←[32mINFO←[0m:     Started server process [←[36m19380←[0m]
+←[32mINFO←[0m:     Waiting for application startup.
+INFO:gateway:Starting BLE scanner for Thunder Sense
+INFO:ble.scanner:Using fixed address 84:71:27:FA:40:45
+←[32mINFO←[0m:     Application startup complete.
+ERROR:ble.scanner:BLE loop error: [WinError -2147467260] Operation aborted
+Traceback (most recent call last):
+  File "F:\CodeStuff\IoT\Home_lab\pc_digital_twin\gateway\ble\scanner.py", line 161, in run_ble_loop
+    await _connect_and_poll(address)
+  File "F:\CodeStuff\IoT\Home_lab\pc_digital_twin\gateway\ble\scanner.py", line 105, in _connect_and_poll
+    async with BleakClient(address, timeout=20.0) as client:
+  File "F:\CodeStuff\IoT\Home_lab\pc_digital_twin\gateway\venv\Lib\site-packages\bleak\__init__.py", line 638, in __aenter__
+    await self.connect()
+  File "F:\CodeStuff\IoT\Home_lab\pc_digital_twin\gateway\venv\Lib\site-packages\bleak\__init__.py", line 660, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "F:\CodeStuff\IoT\Home_lab\pc_digital_twin\gateway\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 428, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\CodeStuff\IoT\Home_lab\pc_digital_twin\gateway\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 765, in _get_services
+    result = await FutureLike(service.get_characteristics_async())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\CodeStuff\IoT\Home_lab\pc_digital_twin\gateway\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 1193, in __await__
+    yield self  # This tells Task to wait for completion.
+    ^^^^^^^^^^
+  File "F:\CodeStuff\IoT\Home_lab\pc_digital_twin\gateway\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 1134, in result
+    raise WinError(error_code)
+OSError: [WinError -2147467260] Operation aborted
+INFO:ble.scanner:Using fixed address 84:71:27:FA:40:45
+INFO:ble.scanner:Connected to 84:71:27:FA:40:45 (MTU=247)
+INFO:ble.scanner:Subscribed to acceleration notifications
+←[32mINFO←[0m:     127.0.0.1:52079 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52105 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52093 - "←[1mGET /api/sensor/history?field=co2_ppm&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52091 - "←[1mGET /api/sensor/history?field=humidity_pct&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52094 - "←[1mGET /api/sensor/history?field=vibration_rms&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52092 - "←[1mGET /api/sensor/history?field=temperature_c&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52090 - "←[1mGET /api/sensor/latest HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52130 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52145 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52136 - "←[1mGET /api/sensor/history?field=humidity_pct&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52137 - "←[1mGET /api/sensor/history?field=temperature_c&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52141 - "←[1mGET /api/sensor/history?field=vibration_rms&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52142 - "←[1mGET /api/sensor/history?field=co2_ppm&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52138 - "←[1mGET /api/sensor/latest HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52153 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52156 - "←[1mGET /api/sensor/history?field=temperature_c&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52169 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52162 - "←[1mGET /api/sensor/history?field=humidity_pct&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52166 - "←[1mGET /api/sensor/history?field=co2_ppm&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52164 - "←[1mGET /api/sensor/history?field=vibration_rms&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52157 - "←[1mGET /api/sensor/latest HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52179 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52193 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52188 - "←[1mGET /api/sensor/history?field=vibration_rms&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52187 - "←[1mGET /api/sensor/history?field=humidity_pct&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52186 - "←[1mGET /api/sensor/history?field=temperature_c&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52190 - "←[1mGET /api/sensor/history?field=co2_ppm&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52183 - "←[1mGET /api/sensor/latest HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52207 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52221 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52212 - "←[1mGET /api/sensor/history?field=temperature_c&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52215 - "←[1mGET /api/sensor/history?field=humidity_pct&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52218 - "←[1mGET /api/sensor/history?field=co2_ppm&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52216 - "←[1mGET /api/sensor/history?field=vibration_rms&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52211 - "←[1mGET /api/sensor/latest HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52233 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52248 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52239 - "←[1mGET /api/sensor/history?field=temperature_c&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52241 - "←[1mGET /api/sensor/history?field=humidity_pct&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52245 - "←[1mGET /api/sensor/history?field=co2_ppm&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52244 - "←[1mGET /api/sensor/history?field=vibration_rms&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52238 - "←[1mGET /api/sensor/latest HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52265 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52278 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52275 - "←[1mGET /api/sensor/history?field=co2_ppm&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52271 - "←[1mGET /api/sensor/history?field=humidity_pct&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52273 - "←[1mGET /api/sensor/history?field=temperature_c&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52272 - "←[1mGET /api/sensor/history?field=vibration_rms&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52274 - "←[1mGET /api/sensor/latest HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52292 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52309 - "←[1mGET /api/status/gateway HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52299 - "←[1mGET /api/sensor/history?field=temperature_c&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52303 - "←[1mGET /api/sensor/history?field=vibration_rms&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52305 - "←[1mGET /api/sensor/history?field=co2_ppm&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52304 - "←[1mGET /api/sensor/history?field=humidity_pct&range=1h HTTP/1.1←[0m" ←[32m200 OK←[0m
+←[32mINFO←[0m:     127.0.0.1:52298 - "←[1mGET /api/sensor/latest HTTP/1.1←[0m" ←[32m200 OK←[0m
