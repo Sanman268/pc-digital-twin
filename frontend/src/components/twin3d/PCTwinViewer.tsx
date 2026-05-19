@@ -11,6 +11,7 @@ import * as THREE from 'three'
 import { useGatewayStatus } from '../../hooks/useGatewayStatus'
 import { useLatest } from '../../hooks/useLatest'
 import { applySensorState, deriveState } from './SensorOverlay'
+import { getAssetProperties, type AssetStatus } from './assetProperties'
 
 // Model authored lying on its side; rotate +90 deg around X to stand it up.
 // Flip the sign if it tilts the wrong way for your GLB.
@@ -203,6 +204,7 @@ export default function PCTwinViewer() {
   const [selectedName, setSelectedName] = useState<string | null>(null)
   const [hidden, setHidden] = useState<Set<string>>(() => new Set())
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  const [propsFor, setPropsFor] = useState<string | null>(null)
 
   const state = deriveState(latest, status?.connected ?? false)
 
@@ -372,6 +374,11 @@ export default function PCTwinViewer() {
         )}
       </div>
 
+      {/* Properties panel */}
+      {propsFor && (
+        <PropertiesPanel name={propsFor} onClose={() => setPropsFor(null)} />
+      )}
+
       {/* Context menu */}
       {menu && (
         <>
@@ -407,6 +414,12 @@ export default function PCTwinViewer() {
               </div>
             )}
             <MenuItem
+              label="Properties"
+              disabled={!selectedName}
+              hint={!selectedName ? 'click an object first' : undefined}
+              onClick={() => { if (selectedName) setPropsFor(selectedName); setMenu(null) }}
+            />
+            <MenuItem
               label="Hide"
               disabled={!selectedName}
               hint={!selectedName ? 'click an object first' : undefined}
@@ -420,6 +433,160 @@ export default function PCTwinViewer() {
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+const STATUS_COLORS: Record<AssetStatus, string> = {
+  operational: '#00d36b',
+  warning: '#ffb020',
+  fault: '#ff4d4d',
+  unknown: '#888',
+}
+
+function PropertiesPanel({ name, onClose }: { name: string; onClose: () => void }) {
+  const p = getAssetProperties(name)
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        zIndex: 40,
+        width: 300,
+        background: '#141923',
+        border: '1px solid rgba(255,255,255,0.12)',
+        borderRadius: 8,
+        boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
+        fontFamily: 'Inter, Segoe UI, sans-serif',
+        color: '#ddd',
+        fontSize: 12,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        padding: '10px 12px',
+        background: 'rgba(255,255,255,0.04)',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 8,
+      }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>
+            {p.displayName}
+          </div>
+          <div style={{
+            fontSize: 10,
+            color: '#888',
+            fontFamily: 'JetBrains Mono, Consolas, monospace',
+            marginTop: 2,
+          }}>
+            mesh: {name}
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'transparent',
+            color: '#888',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 18,
+            lineHeight: 1,
+            padding: 0,
+          }}
+          title="Close"
+        >×</button>
+      </div>
+
+      {/* Status badge */}
+      <div style={{
+        padding: '8px 12px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+      }}>
+        <span style={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          background: STATUS_COLORS[p.status],
+          boxShadow: `0 0 6px ${STATUS_COLORS[p.status]}`,
+        }} />
+        <span style={{ color: STATUS_COLORS[p.status], fontWeight: 500 }}>
+          {p.status.toUpperCase()}
+        </span>
+        <span style={{ color: '#666', fontSize: 11, marginLeft: 'auto' }}>
+          {p.category}
+        </span>
+      </div>
+
+      {/* Sections */}
+      <Section title="Identification">
+        <Row k="Manufacturer" v={p.manufacturer} />
+        <Row k="Model" v={p.model} />
+        <Row k="Part #" v={p.partNumber} mono />
+        <Row k="Serial #" v={p.serialNumber} mono />
+      </Section>
+
+      {(p.powerW !== undefined || p.rpm !== undefined) && (
+        <Section title="Specs">
+          {p.powerW !== undefined && <Row k="Power" v={`${p.powerW} W`} mono />}
+          {p.rpm !== undefined && <Row k="Max RPM" v={`${p.rpm}`} mono />}
+        </Section>
+      )}
+
+      <Section title="Lifecycle">
+        <Row k="Installed" v={p.installDate} mono />
+        <Row k="Warranty" v={p.warrantyEnd} mono />
+      </Section>
+
+      {p.notes && (
+        <Section title="Notes">
+          <div style={{ color: '#aaa', fontSize: 11, lineHeight: 1.5 }}>
+            {p.notes}
+          </div>
+        </Section>
+      )}
+    </div>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{
+        fontSize: 10,
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
+        color: '#666',
+        marginBottom: 6,
+      }}>
+        {title}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function Row({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      gap: 8,
+      padding: '3px 0',
+    }}>
+      <span style={{ color: '#888' }}>{k}</span>
+      <span style={{
+        color: '#ddd',
+        textAlign: 'right',
+        fontFamily: mono ? 'JetBrains Mono, Consolas, monospace' : undefined,
+        wordBreak: 'break-all',
+      }}>{v}</span>
     </div>
   )
 }
