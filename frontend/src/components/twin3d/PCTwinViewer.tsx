@@ -12,6 +12,10 @@ import { useGatewayStatus } from '../../hooks/useGatewayStatus'
 import { useLatest } from '../../hooks/useLatest'
 import { applySensorState, deriveState } from './SensorOverlay'
 import { getAssetProperties, type AssetStatus } from './assetProperties'
+import TemperatureChart from '../charts/TemperatureChart'
+import HumidityChart from '../charts/HumidityChart'
+import VibrationChart from '../charts/VibrationChart'
+import AirQualityChart from '../charts/AirQualityChart'
 
 // Model authored lying on its side; rotate +90 deg around X to stand it up.
 // Flip the sign if it tilts the wrong way for your GLB.
@@ -23,8 +27,8 @@ const MODEL_ROTATION: [number, number, number] = [Math.PI / 2, 0, 0]
 const SENSOR_LOCAL_POS: [number, number, number] = [0.1, 0, -0.2]
 
 // Marker sizes (world units). Tweak together so core < halo.
-const MARKER_CORE_RADIUS = 0.025
-const MARKER_HALO_RADIUS = 0.045
+const MARKER_CORE_RADIUS = 0.035
+const MARKER_HALO_RADIUS = 0.065
 
 const CASE_OPACITY = 0.22
 
@@ -107,7 +111,15 @@ function makeCaseTransparent(root: THREE.Object3D) {
   })
 }
 
-function SensorMarker({ position }: { position: [number, number, number] }) {
+const MARKER_USERDATA_KEY = 'isSensorMarker'
+
+function SensorMarker({
+  position,
+  active,
+}: {
+  position: [number, number, number]
+  active: boolean
+}) {
   const haloRef = useRef<THREE.Mesh>(null)
   useFrame(({ clock }) => {
     if (!haloRef.current) return
@@ -118,30 +130,41 @@ function SensorMarker({ position }: { position: [number, number, number] }) {
     mat.opacity = 0.35 + 0.25 * (0.5 + 0.5 * Math.sin(t * 2.4))
   })
 
-  // Marker is purely indicative — no click handler, can't be hidden.
+  // Bright cyan when popup is open, warm orange when closed.
+  const color = active ? '#00e5ff' : '#ff8a1a'
+  const coreIntensity = active ? 3.0 : 1.6
+
   return (
     <group position={position}>
-      <mesh>
+      {/* Visible core. depthTest off so it always renders on top of the case. */}
+      <mesh
+        userData={{ [MARKER_USERDATA_KEY]: true }}
+        renderOrder={999}
+      >
         <sphereGeometry args={[MARKER_CORE_RADIUS, 24, 24]} />
         <meshStandardMaterial
-          color="#ff8a1a"
-          emissive="#ff8a1a"
-          emissiveIntensity={1.6}
+          color={color}
+          emissive={color}
+          emissiveIntensity={coreIntensity}
           toneMapped={false}
+          depthTest={false}
+          transparent
         />
       </mesh>
-      <mesh ref={haloRef} raycast={() => null}>
+      {/* Halo — visual only, not interactive */}
+      <mesh ref={haloRef} raycast={() => null} renderOrder={999}>
         <sphereGeometry args={[MARKER_HALO_RADIUS, 24, 24]} />
         <meshBasicMaterial
-          color="#ff8a1a"
+          color={color}
           transparent
           opacity={0.4}
           depthWrite={false}
+          depthTest={false}
           blending={THREE.AdditiveBlending}
           toneMapped={false}
         />
       </mesh>
-      <pointLight color="#ff8a1a" intensity={0.5} distance={0.8} decay={2} />
+      <pointLight color={color} intensity={active ? 1.2 : 0.5} distance={1.2} decay={2} />
     </group>
   )
 }
@@ -151,20 +174,23 @@ function PCModel({
   state,
   selectedName,
   hidden,
+  markerActive,
   onSelect,
+  onMarkerClick,
 }: {
   url: string
   state: ReturnType<typeof deriveState>
   selectedName: string | null
   hidden: Set<string>
+  markerActive: boolean
   onSelect: (name: string | null) => void
+  onMarkerClick: () => void
 }) {
   const { scene } = useGLTF(url) as unknown as { scene: THREE.Group }
   const ref = useRef<THREE.Group>(null)
 
   useMemo(() => makeCaseTransparent(scene), [scene])
 
-  // Run state color, visibility, and highlight together so they don't fight.
   useEffect(() => {
     if (!ref.current) return
     clearHighlight(ref.current)
@@ -178,21 +204,35 @@ function PCModel({
       ref={ref}
       rotation={MODEL_ROTATION}
       onClick={(e) => {
+        // Prefer the sensor marker even when a transparent case panel is
+        // intersected first along the ray.
+        const markerHit = e.intersections.find(
+          i => i.object.userData?.[MARKER_USERDATA_KEY],
+        )
+        if (markerHit) {
+          e.stopPropagation()
+          onMarkerClick()
+          return
+        }
         if (!e.object.name) return
         e.stopPropagation()
         onSelect(e.object.name)
       }}
       onPointerOver={(e) => {
-        if (!e.object.name) return
-        e.stopPropagation()
-        document.body.style.cursor = 'pointer'
+        const overMarker = e.intersections.some(
+          i => i.object.userData?.[MARKER_USERDATA_KEY],
+        )
+        if (overMarker || e.object.name) {
+          e.stopPropagation()
+          document.body.style.cursor = 'pointer'
+        }
       }}
       onPointerOut={() => {
         document.body.style.cursor = 'default'
       }}
     >
       <primitive object={scene} />
-      <SensorMarker position={SENSOR_LOCAL_POS} />
+      <SensorMarker position={SENSOR_LOCAL_POS} active={markerActive} />
     </group>
   )
 }
@@ -205,6 +245,7 @@ export default function PCTwinViewer() {
   const [hidden, setHidden] = useState<Set<string>>(() => new Set())
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const [propsFor, setPropsFor] = useState<string | null>(null)
+  const [metricsOpen, setMetricsOpen] = useState(false)
 
   const state = deriveState(latest, status?.connected ?? false)
 
@@ -228,6 +269,7 @@ export default function PCTwinViewer() {
       style={{
         width: '100%',
         height: '100%',
+        flex: 1,
         minHeight: 520,
         position: 'relative',
       }}
@@ -262,13 +304,15 @@ export default function PCTwinViewer() {
         <directionalLight position={[-4, 2, -3]} intensity={0.35} color="#88aaff" />
 
         <Suspense fallback={null}>
-          <Bounds fit clip margin={0.85} observe>
+          <Bounds fit clip margin={0.55} observe>
             <PCModel
               url="/models/pc_case.glb"
               state={state}
               selectedName={selectedName}
               hidden={hidden}
+              markerActive={metricsOpen}
               onSelect={setSelectedName}
+              onMarkerClick={() => setMetricsOpen(o => !o)}
             />
           </Bounds>
 
@@ -335,7 +379,7 @@ export default function PCTwinViewer() {
         color: 'rgba(255,255,255,0.45)',
         pointerEvents: 'none',
       }}>
-        click to select · right-click for menu · drag · scroll to zoom
+        click part to select · click orange marker for readings · right-click for menu
       </div>
 
       {/* Selection + hidden-count pills */}
@@ -377,6 +421,11 @@ export default function PCTwinViewer() {
       {/* Properties panel */}
       {propsFor && (
         <PropertiesPanel name={propsFor} onClose={() => setPropsFor(null)} />
+      )}
+
+      {/* Live charts popup (triggered by sensor marker click) */}
+      {metricsOpen && (
+        <ChartsPopup onClose={() => setMetricsOpen(false)} />
       )}
 
       {/* Context menu */}
@@ -442,6 +491,78 @@ const STATUS_COLORS: Record<AssetStatus, string> = {
   warning: '#ffb020',
   fault: '#ff4d4d',
   unknown: '#888',
+}
+
+function ChartsPopup({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        bottom: 12,
+        zIndex: 40,
+        width: 'min(54%, 620px)',
+        background: '#0f131c',
+        border: '1px solid rgba(255, 138, 26, 0.4)',
+        borderRadius: 10,
+        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 138, 26, 0.18)',
+        fontFamily: 'Inter, Segoe UI, sans-serif',
+        color: '#ddd',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        padding: '10px 14px',
+        background: 'rgba(255, 138, 26, 0.08)',
+        borderBottom: '1px solid rgba(255, 138, 26, 0.25)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+      }}>
+        <span style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: '#ff8a1a', boxShadow: '0 0 8px #ff8a1a',
+        }} />
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>
+          Sensor Live Readings
+        </span>
+        <button
+          onClick={onClose}
+          style={{
+            marginLeft: 'auto',
+            background: 'transparent',
+            color: '#aaa',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 20,
+            lineHeight: 1,
+            padding: 0,
+          }}
+          title="Close"
+        >×</button>
+      </div>
+
+      {/* 2×2 chart grid */}
+      <div style={{
+        flex: 1,
+        padding: 10,
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gridTemplateRows: '1fr 1fr',
+        gap: 10,
+        minHeight: 0,
+      }}>
+        <TemperatureChart />
+        <HumidityChart />
+        <VibrationChart />
+        <AirQualityChart />
+      </div>
+    </div>
+  )
 }
 
 function PropertiesPanel({ name, onClose }: { name: string; onClose: () => void }) {

@@ -5,7 +5,7 @@
 > and serves an interactive React + Three.js dashboard. An LLM diagnostic
 > agent analyzes recent telemetry on demand.
 
-![Dashboard at v0.1.0 — live temperature, humidity, vibration with a real bump spike captured at 19:05:33](docs/results/v0.2.1-dashboard.png)
+![Dashboard at v0.2.4 — live temperature, humidity, vibration with a real bump spike captured at 19:05:33](docs/results/v0.2.4-dashboard.png)
 
 ## What it does
 
