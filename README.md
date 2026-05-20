@@ -13,8 +13,10 @@ A Thunderboard Sense board sits inside the case. Every two seconds the
 gateway reads temperature, humidity, pressure, ambient light, and 3-axis
 acceleration over Bluetooth Low Energy, writes them to a time-series
 database, and exposes a REST API. A web dashboard renders the data as live
-charts alongside a 3D model of the case. A diagnostics endpoint summarizes
-recent history through an LLM (Claude or local Gemma).
+charts alongside a 3D model of the case. A conversational diagnostics
+agent (Ollama + `llama3.1:8b`) answers natural-language questions about
+the telemetry by calling Influx-backed tools and narrating the result —
+the chat panel lives inside the 3D viewer as a popup.
 
 The screenshot above is real telemetry from a Thunderboard sitting on the
 desk — note the steady self-heating curve, the anti-correlated humidity, and
@@ -34,9 +36,14 @@ the **vibration spike at 19:05:33** captured when the board was bumped.
   `case_gateway_status`.
 - **3D web visualization** — Three.js via `@react-three/fiber` and `drei`,
   with a sensor-state → mesh-color overlay system.
-- **LLM-backed diagnostics** — provider-agnostic agent that builds a prompt
-  from rolling Influx aggregates and calls either Claude API or a local
-  Ollama/Gemma endpoint.
+- **LLM-backed diagnostics** — a planner→tool→narrator chat agent on
+  `POST /api/chat`. The planner (Ollama-hosted `llama3.1:8b`) decides
+  which Influx tool to call (`query_window`, `find_anomalies`,
+  `compare_windows`); the narrator pass synthesises a short English
+  answer from the result. Includes a salvage layer for small models
+  that occasionally emit tool calls as inline JSON, plus tz-aware
+  timestamps so the chat and the charts agree. See
+  [`docs/STAGE3.md`](docs/STAGE3.md).
 - **Hardware adaptation** — the spec assumed a Thunderboard Sense 2 with
   custom firmware emitting JSON-over-notify; the actual hardware was a
   Sense v1 (BRD4160A) running stock SiLabs demo firmware. The gateway was
@@ -54,10 +61,11 @@ the **vibration spike at 19:05:33** captured when the board was bumped.
  │  (Si7021, BMP280,   │                         │  ble/   scanner+parser   │
  │   ICM-20648, Si1133)│                         │  influx writer           │
  └─────────────────────┘                         │  api/   /sensor /status  │
-                                                 │         /events /diag    │
-                                                 │  llm/   Claude · Gemma   │
+                                                 │         /events /chat    │
+                                                 │  llm/   planner+tools+   │
+                                                 │         narrator (Ollama)│
                                                  └────────────┬─────────────┘
-                                                              │ writes
+                                                              │ writes / reads
                                                               ▼
                                                    ┌────────────────────┐
                                                    │  InfluxDB 2.x      │
@@ -69,6 +77,7 @@ the **vibration spike at 19:05:33** captured when the board was bumped.
                                                    │  Frontend (Vite +  │
                                                    │  React + Three.js) │
                                                    │  charts + 3D twin  │
+                                                   │  + chat popup      │
                                                    └────────────────────┘
 ```
 
@@ -80,7 +89,7 @@ the **vibration spike at 19:05:33** captured when the board was bumped.
 | Gateway | Python 3.11, FastAPI, Uvicorn, `bleak`, `influxdb-client`, pydantic-settings, httpx |
 | Storage | InfluxDB 2.7 (Docker) |
 | Frontend | React 18, TypeScript, Vite, `three`, `@react-three/fiber`, `@react-three/drei`, `recharts`, axios |
-| LLM | Anthropic Claude API · Ollama / Gemma (local) |
+| LLM | Ollama (default `llama3.1:8b`) via OpenAI-compatible `/v1`; legacy one-shot endpoint also supports Anthropic Claude |
 | Firmware | C, Silicon Labs Simplicity Studio (stubbed — using stock demo firmware) |
 
 ## Status
@@ -89,10 +98,12 @@ the **vibration spike at 19:05:33** captured when the board was bumped.
 |---|---|---|
 | 1 — Data Collection | BLE → Gateway → InfluxDB | ✅ Done |
 | 2 — Visualization | Charts + 3D model | ✅ Done (named-mesh color overlay pending Blender re-export) |
-| 3 — Diagnostics | LLM analysis endpoint | 🚧 Wired, not yet tested with a key |
+| 3 — Diagnostics | LLM chat agent + tools | ✅ Done at `v0.3.2` — see [`docs/STAGE3.md`](docs/STAGE3.md) |
 
-See [`CHECKPOINT.md`](CHECKPOINT.md) for the iterative development journal
-and [`docs/SPEC.md`](docs/SPEC.md) for the original project specification.
+See [`CHECKPOINT.md`](CHECKPOINT.md) for the iterative development journal,
+[`docs/STAGE3.md`](docs/STAGE3.md) for the chat agent design + Stage 4
+direction, and [`docs/SPEC.md`](docs/SPEC.md) for the original project
+specification.
 
 ## Repo layout
 
@@ -107,7 +118,8 @@ docs/       Project spec, BLE protocol, sensor placement, results
 ## Quick start
 
 Prereqs: Docker Desktop, Python 3.11+, Node 18+, a BLE-capable PC, a
-Silicon Labs Thunderboard within ~5 m.
+Silicon Labs Thunderboard within ~5 m, and an Ollama instance reachable
+on your network with `llama3.1:8b` pulled (for the chat agent).
 
 ```powershell
 # 1. InfluxDB
@@ -116,26 +128,50 @@ docker compose up -d
 # UI at http://localhost:8086 — log in (admin / adminpassword),
 # copy the admin API token.
 
-# 2. Gateway
+# 2. Ollama (on the model host — can be the same machine or remote)
+ollama pull llama3.1:8b
+ollama serve
+
+# 3. Gateway
 cd ..\gateway
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 copy .env.example .env
-# Edit .env: paste INFLUXDB_TOKEN, optionally BLE_DEVICE_ADDRESS
+# Edit .env:
+#   - INFLUXDB_TOKEN     paste your admin token
+#   - BLE_DEVICE_ADDRESS optional, faster than name discovery
+#   - OLLAMA_BASE_URL    e.g. http://localhost:11434/v1
+#   - OLLAMA_MODEL       e.g. llama3.1:8b
+#   - LOCAL_TZ           IANA tz, e.g. Asia/Ho_Chi_Minh
 python main.py
 # API at http://localhost:8000/docs
 
-# 3. Frontend
+# 4. Frontend
 cd ..\frontend
 npm install
 npm run dev
-# Open http://localhost:5173
+# Open http://localhost:5173 — chat lives in the bottom toolbar of the
+# 3D viewer.
 ```
 
 `gateway/ble_scan.py` lists nearby BLE devices.
 `gateway/ble_probe.py <MAC>` dumps the GATT tree of a target device — useful
 when adapting to different firmware.
+
+### Talking to the diagnostics agent
+
+CLI smoke test:
+
+```bash
+curl -X POST http://localhost:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"When was the case temperature highest tonight?"}'
+```
+
+Expected: a short English answer plus `tool_calls` showing which Influx
+tool was invoked. Full design notes in
+[`docs/STAGE3.md`](docs/STAGE3.md).
 
 ## License
 
