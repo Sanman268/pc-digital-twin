@@ -6,3 +6,5 @@ pydantic>=2
 pydantic-settings
 httpx
 python-dotenv
+openai
+tzdata  # Windows: provides IANA tz database for zoneinfo (Linux/macOS get it from OS)
