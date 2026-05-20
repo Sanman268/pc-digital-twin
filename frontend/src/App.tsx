@@ -2,7 +2,6 @@ import Header from './components/layout/Header'
 import StatusBar from './components/layout/StatusBar'
 import Controls from './components/Controls'
 import PCTwinViewer from './components/twin3d/PCTwinViewer'
-import DiagnosticsPanel from './components/diagnostics/DiagnosticsPanel'
 import { SettingsProvider } from './settings/SettingsContext'
 
 function Dashboard() {
@@ -35,9 +34,6 @@ function Dashboard() {
           <PCTwinViewer />
         </section>
 
-        <section>
-          <DiagnosticsPanel />
-        </section>
       </main>
 
       <StatusBar />

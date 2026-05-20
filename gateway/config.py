@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     gemma_api_url: str = "http://localhost:11434/api/generate"
 
+    # Ollama (Stage 3 conversational diagnostics agent)
+    ollama_base_url: str = "http://desktop-3dvru40:11434/v1"
+    ollama_model: str = "llama3.1:8b"
+
+    # IANA tz name for converting Influx UTC timestamps to wall-clock time
+    # in chat tool results, so the LLM and frontend charts agree.
+    local_tz: str = "Asia/Ho_Chi_Minh"
+
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     cors_origins: str = "http://localhost:5173"

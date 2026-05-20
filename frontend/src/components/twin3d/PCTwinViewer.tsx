@@ -16,6 +16,7 @@ import TemperatureChart from '../charts/TemperatureChart'
 import HumidityChart from '../charts/HumidityChart'
 import VibrationChart from '../charts/VibrationChart'
 import AirQualityChart from '../charts/AirQualityChart'
+import ChatPanel from '../chat/ChatPanel'
 
 // Model authored lying on its side; rotate +90 deg around X to stand it up.
 // Flip the sign if it tilts the wrong way for your GLB.
@@ -240,12 +241,26 @@ function PCModel({
 export default function PCTwinViewer() {
   const status = useGatewayStatus()
   const latest = useLatest()
-  const [autoRotate, setAutoRotate] = useState(false)
   const [selectedName, setSelectedName] = useState<string | null>(null)
   const [hidden, setHidden] = useState<Set<string>>(() => new Set())
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const [propsFor, setPropsFor] = useState<string | null>(null)
   const [metricsOpen, setMetricsOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
+  const [activated, setActivated] = useState(false)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  // Click outside the viewer deactivates wheel zoom so page scroll wins again.
+  useEffect(() => {
+    if (!activated) return
+    const onDown = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setActivated(false)
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [activated])
 
   const state = deriveState(latest, status?.connected ?? false)
 
@@ -266,6 +281,7 @@ export default function PCTwinViewer() {
 
   return (
     <div
+      ref={wrapperRef}
       style={{
         width: '100%',
         height: '100%',
@@ -277,6 +293,7 @@ export default function PCTwinViewer() {
         e.preventDefault()
         setMenu({ x: e.clientX, y: e.clientY })
       }}
+      onMouseDown={() => setActivated(true)}
     >
       <Canvas
         shadows
@@ -336,51 +353,37 @@ export default function PCTwinViewer() {
           rotateSpeed={0.8}
           zoomSpeed={0.7}
           panSpeed={0.6}
+          enableZoom={activated}
+          enableRotate={activated}
+          enablePan={activated}
           minDistance={0.4}
           maxDistance={10}
           maxPolarAngle={Math.PI / 2 - 0.02}
-          autoRotate={autoRotate}
-          autoRotateSpeed={0.6}
           target={[0, 0, 0]}
         />
       </Canvas>
 
-      {/* Overlay controls */}
-      <div style={{
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        display: 'flex',
-        gap: 6,
-      }}>
-        <button
-          onClick={() => setAutoRotate(v => !v)}
-          style={{
-            padding: '4px 10px',
-            fontSize: 12,
-            background: autoRotate ? '#00ff88' : 'rgba(255,255,255,0.08)',
-            color: autoRotate ? '#000' : '#ccc',
-            border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: 4,
-            cursor: 'pointer',
-          }}
-          title="Auto-rotate the model"
-        >
-          {autoRotate ? '⏸ stop' : '↻ rotate'}
-        </button>
-      </div>
-
       {/* Help hint */}
       <div style={{
         position: 'absolute',
-        bottom: 8,
+        top: 8,
         left: 8,
         fontSize: 11,
-        color: 'rgba(255,255,255,0.45)',
+        color: activated ? 'rgba(0, 229, 255, 0.7)' : 'rgba(255,255,255,0.45)',
         pointerEvents: 'none',
       }}>
-        click part to select · click orange marker for readings · right-click for menu
+        {activated
+          ? 'viewer active · scroll to zoom · click outside to release'
+          : 'click viewer to activate · right-click for menu'}
       </div>
+
+      {/* Bottom toolbar — glassy floating dock */}
+      <ViewerToolbar
+        chatOpen={chatOpen}
+        metricsOpen={metricsOpen}
+        onToggleChat={() => setChatOpen(v => !v)}
+        onToggleMetrics={() => setMetricsOpen(v => !v)}
+      />
 
       {/* Selection + hidden-count pills */}
       <div style={{
@@ -426,6 +429,11 @@ export default function PCTwinViewer() {
       {/* Live charts popup (triggered by sensor marker click) */}
       {metricsOpen && (
         <ChartsPopup onClose={() => setMetricsOpen(false)} />
+      )}
+
+      {/* Chat popup (triggered by toolbar) */}
+      {chatOpen && (
+        <ChatPopup onClose={() => setChatOpen(false)} />
       )}
 
       {/* Context menu */}
@@ -708,6 +716,171 @@ function Row({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
         fontFamily: mono ? 'JetBrains Mono, Consolas, monospace' : undefined,
         wordBreak: 'break-all',
       }}>{v}</span>
+    </div>
+  )
+}
+
+function ViewerToolbar({
+  chatOpen,
+  metricsOpen,
+  onToggleChat,
+  onToggleMetrics,
+}: {
+  chatOpen: boolean
+  metricsOpen: boolean
+  onToggleChat: () => void
+  onToggleMetrics: () => void
+}) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        bottom: 16,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 30,
+        display: 'flex',
+        gap: 4,
+        padding: 6,
+        background: 'rgba(15, 19, 28, 0.72)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: 999,
+        boxShadow: '0 8px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255,255,255,0.05)',
+        backdropFilter: 'blur(12px) saturate(1.4)',
+        WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
+        fontFamily: 'Inter, Segoe UI, sans-serif',
+      }}
+    >
+      <ToolbarButton
+        active={metricsOpen}
+        onClick={onToggleMetrics}
+        title="Live sensor charts"
+        accent="#ff8a1a"
+        icon={
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18" />
+            <path d="M7 14l4-4 3 3 5-6" />
+          </svg>
+        }
+        label="Charts"
+      />
+      <ToolbarButton
+        active={chatOpen}
+        onClick={onToggleChat}
+        title="Diagnostics chat"
+        accent="#00e5ff"
+        icon={
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12a8 8 0 1 1-3-6.24L21 4l-1.05 3.43A7.96 7.96 0 0 1 21 12z" />
+            <path d="M8 11h.01M12 11h.01M16 11h.01" />
+          </svg>
+        }
+        label="Chat"
+      />
+    </div>
+  )
+}
+
+function ToolbarButton({
+  active,
+  onClick,
+  icon,
+  label,
+  title,
+  accent,
+}: {
+  active: boolean
+  onClick: () => void
+  icon: React.ReactNode
+  label: string
+  title: string
+  accent: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '7px 12px',
+        fontSize: 12,
+        fontWeight: 500,
+        background: active ? `${accent}22` : 'transparent',
+        color: active ? accent : '#cfd6e1',
+        border: `1px solid ${active ? `${accent}66` : 'transparent'}`,
+        borderRadius: 999,
+        cursor: 'pointer',
+        transition: 'background 120ms, color 120ms, border-color 120ms',
+      }}
+      onMouseEnter={(e) => {
+        if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
+      }}
+      onMouseLeave={(e) => {
+        if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+      }}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  )
+}
+
+function ChatPopup({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: 12,
+        top: 12,
+        bottom: 76,
+        zIndex: 40,
+        width: 'min(42%, 460px)',
+        background: '#0f131c',
+        border: '1px solid rgba(0, 229, 255, 0.35)',
+        borderRadius: 10,
+        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 229, 255, 0.15)',
+        fontFamily: 'Inter, Segoe UI, sans-serif',
+        color: '#ddd',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <div style={{
+        padding: '10px 14px',
+        background: 'rgba(0, 229, 255, 0.07)',
+        borderBottom: '1px solid rgba(0, 229, 255, 0.22)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+      }}>
+        <span style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: '#00e5ff', boxShadow: '0 0 8px #00e5ff',
+        }} />
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>
+          Diagnostics Chat
+        </span>
+        <button
+          onClick={onClose}
+          style={{
+            marginLeft: 'auto',
+            background: 'transparent',
+            color: '#aaa',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 20,
+            lineHeight: 1,
+            padding: 0,
+          }}
+          title="Close"
+        >×</button>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, padding: 10, display: 'flex' }}>
+        <ChatPanel embedded />
+      </div>
     </div>
   )
 }
