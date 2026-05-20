@@ -14,6 +14,13 @@ node_modules/
 dist/
 .vite/
 *.log
+# tsc emit artifacts (Vite bundles directly; tsc is typecheck-only via noEmit)
+frontend/src/**/*.js
+frontend/src/**/*.d.ts
+frontend/src/**/*.tsbuildinfo
+
+# Local scratch / test files
+chat-test.json
 
 # IDE / harness
 .idea/
