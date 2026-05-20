@@ -31,6 +31,6 @@ async def narrator_pass(messages: list[dict]):
     return await _client().chat.completions.create(
         model=s.ollama_model,
         messages=messages,
-        temperature=0.6,
+        temperature=0.2,
         max_tokens=300,
     )

@@ -41,7 +41,10 @@ def _local_tz() -> ZoneInfo:
 
 
 def _to_local_iso(dt: datetime) -> str:
-    return dt.astimezone(_local_tz()).isoformat()
+    """Local wall-clock time, no microseconds or tz suffix.
+    Server has already converted; suppressing the offset avoids accidentally
+    biasing the LLM toward a region's language."""
+    return dt.astimezone(_local_tz()).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
 
 
 class QueryWindowParams(BaseModel):

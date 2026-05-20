@@ -7,9 +7,10 @@ TOOLS = [
         "function": {
             "name": "query_window",
             "description": (
-                "Lấy thống kê tổng hợp (min/max/mean/std) của một sensor trong một khoảng thời gian. "
-                "Với aggregation=min hoặc max, kết quả còn có trường 'time' là thời điểm chính xác "
-                "(giờ địa phương) khi đạt giá trị đó — dùng để trả lời 'lúc mấy giờ ... cao/thấp nhất'."
+                "Aggregate statistic (min/max/mean/std) for one sensor over a time window. "
+                "When aggregation is 'min' or 'max', the result also includes a 'time' field "
+                "(local time) marking when that extreme occurred — use it to answer "
+                "'at what time ... was the highest/lowest'."
             ),
             "parameters": {
                 "type": "object",
@@ -27,8 +28,9 @@ TOOLS = [
         "function": {
             "name": "find_anomalies",
             "description": (
-                "Tìm điểm bất thường: các sample mà giá trị lệch khỏi mean quá "
-                "threshold_sigma lần stddev của chính khoảng đó."
+                "Find anomalous samples — points whose value deviates from the mean "
+                "by more than threshold_sigma times the standard deviation of the "
+                "same window."
             ),
             "parameters": {
                 "type": "object",
@@ -39,7 +41,7 @@ TOOLS = [
                         "type": "number",
                         "minimum": 1.0,
                         "maximum": 5.0,
-                        "description": "Số lần stddev coi là bất thường, mặc định 2.5.",
+                        "description": "Stddev multiplier above which a sample counts as an anomaly. Default 2.5.",
                     },
                 },
                 "required": ["metric", "window"],
@@ -50,7 +52,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "compare_windows",
-            "description": "So sánh aggregate (mean hoặc max) của 2 khoảng thời gian khác nhau.",
+            "description": "Compare the aggregate (mean or max) of one sensor across two different time windows.",
             "parameters": {
                 "type": "object",
                 "properties": {

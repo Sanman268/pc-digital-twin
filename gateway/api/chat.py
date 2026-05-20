@@ -99,8 +99,8 @@ async def chat_endpoint(req: ChatRequest) -> ChatResponse:
     data_points: list[DataPoint] = []
 
     retry_hint = (
-        " Hãy gọi lại tool qua function-call mechanism của hệ thống "
-        "(KHÔNG viết JSON vào nội dung text)."
+        " Retry the tool via the function-calling channel "
+        "(do NOT write JSON into text content)."
     )
 
     for attempt in range(MAX_RETRIES + 1):

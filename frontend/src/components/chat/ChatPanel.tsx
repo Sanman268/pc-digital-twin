@@ -35,9 +35,9 @@ interface Turn {
 }
 
 const SUGGESTIONS = [
-  'Nhiệt độ trung bình 1 giờ qua?',
-  'Có rung động bất thường trong 6 giờ qua không?',
-  'So sánh độ ẩm hôm nay với hôm qua',
+  'Average temperature in the last hour?',
+  'Any vibration anomalies in the last 6 hours?',
+  'When was the temperature highest tonight?',
 ]
 
 const MAX_HISTORY = 10
@@ -150,8 +150,8 @@ export default function ChatPanel({ embedded = false }: { embedded?: boolean } =
       >
         {turns.length === 0 && !pending && (
           <div className="dim" style={{ fontSize: 13, padding: '8px 2px' }}>
-            Hỏi về nhiệt độ, độ ẩm, áp suất, rung động hoặc ánh sáng.
-            Agent sẽ tự gọi tool truy vấn InfluxDB và diễn giải kết quả.
+            Ask about temperature, humidity, pressure, vibration, or light.
+            The agent will call InfluxDB query tools and interpret the results for you.
             <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {SUGGESTIONS.map(s => (
                 <button key={s} onClick={() => send(s)} style={{ fontSize: 12 }}>
@@ -199,7 +199,7 @@ export default function ChatPanel({ embedded = false }: { embedded?: boolean } =
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={pending ? 'Đang chờ phản hồi…' : 'Hỏi gì đó (Enter để gửi, Shift+Enter xuống dòng)…'}
+          placeholder={pending ? 'Waiting for response…' : 'Ask a question (Enter to send, Shift+Enter for newline)…'}
           disabled={!!pending}
           rows={2}
           style={{
@@ -221,7 +221,7 @@ export default function ChatPanel({ embedded = false }: { embedded?: boolean } =
           disabled={!!pending || !input.trim()}
           style={{ alignSelf: 'stretch' }}
         >
-          {pending ? '…' : 'Gửi'}
+          {pending ? '…' : 'Send'}
         </button>
       </div>
     </div>
@@ -261,7 +261,7 @@ function ErrorBubble({ text }: { text: string }) {
       borderRadius: 10,
       fontSize: 13,
     }}>
-      <strong>Lỗi:</strong> {text}
+      <strong>Error:</strong> {text}
     </div>
   )
 }

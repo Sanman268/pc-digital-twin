@@ -21,6 +21,8 @@ frontend/src/**/*.tsbuildinfo
 
 # Local scratch / test files
 chat-test.json
+chat-response.json
+probe*.json
 
 # IDE / harness
 .idea/
