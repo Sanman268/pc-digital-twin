@@ -38,13 +38,3 @@ class GatewayStatus(BaseModel):
 class HistoryPoint(BaseModel):
     time: datetime
     value: float
-
-
-class DiagnosticsRequest(BaseModel):
-    range: str = "1h"
-
-
-class DiagnosticsResponse(BaseModel):
-    summary: str
-    issues: list[str] = []
-    recommendations: list[str] = []
