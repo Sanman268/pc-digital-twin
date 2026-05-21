@@ -48,8 +48,11 @@
 - [x] `api/routes_sensor.py` — `/history`, `/latest`
 - [x] `api/routes_events.py` — `/boot`
 - [x] `api/routes_status.py` — `/gateway`
-- [x] `api/routes_diagnostics.py` — `/analyze`
-- [x] `llm/agent.py` — Claude + Gemma adapters, prompt builder
+- [x] `api/chat.py` — `/api/chat` tool-using LLM agent
+- [x] `llm/llama_client.py` — AsyncOpenAI client → Ollama
+- [x] `llm/prompts.py` — system prompt
+- [x] `llm/tools.py` — OpenAI-style tool schemas
+- [x] `llm/executor.py` — tool dispatch + Influx queries
 - [x] `models/schemas.py` — pydantic v2 models
 
 ### Frontend (`frontend/`)
@@ -62,7 +65,7 @@
 - [x] `src/components/twin3d/PCTwinViewer.tsx` — @react-three/fiber + drei
 - [x] `src/components/twin3d/ModelLoader.ts` — GLTF loader, mesh name registry
 - [x] `src/components/twin3d/SensorOverlay.ts` — state derivation, mesh recolor
-- [x] `src/components/diagnostics/` — DiagnosticsPanel, AlertBadge
+- [x] `src/components/chat/ChatPanel.tsx` — diagnostics chat UI
 - [x] `src/components/layout/` — Header, StatusBar
 - [x] `public/models/README.md`
 
@@ -86,7 +89,7 @@
 |---|---|---|---|
 | 1 | Generate real BLE GATT UUIDs | `firmware/src/ble_service.c` + `gateway/ble/scanner.py` | Stage 1 |
 | 2 | Set `INFLUXDB_TOKEN` | `gateway/.env` | Stage 1 |
-| 3 | Set `ANTHROPIC_API_KEY` | `gateway/.env` | Stage 3 |
+| 3 | Run Ollama with `llama3.1:8b` reachable over Tailscale | `OLLAMA_BASE_URL` in `gateway/.env` | Stage 3 |
 | 4 | Export `pc_case.glb` from Blender with named meshes | `frontend/public/models/` | Stage 2 |
 | 5 | Wire SiLabs sensor drivers (Si7021, BMP280, Si1133, ICM-20648, CCS811) | `firmware/src/sensors.c` | Stage 1 |
 | 6 | Persist `boot_counter` to NVM | `firmware/src/app.c` | Stage 1 |
@@ -112,7 +115,7 @@
    .\venv\Scripts\Activate
    pip install -r requirements.txt
    copy .env.example .env
-   # edit .env: paste the Influx token, set ANTHROPIC_API_KEY (or switch LLM_PROVIDER=gemma)
+   # edit .env: paste the Influx token; point OLLAMA_BASE_URL at your Ollama host
    python main.py
    ```
    Hit http://localhost:8000/docs to confirm the API loaded.
@@ -149,10 +152,10 @@
 - [x] Dashboard auto-refreshes every 5 seconds
 
 ### Stage 3 — Diagnostics
-- [ ] `POST /api/diagnostics/analyze` successfully calls the LLM
-- [ ] Prompt is populated with real data from InfluxDB
-- [ ] Diagnostic result is rendered in the Diagnostics Panel
-- [ ] Alert badge appears when an anomaly is detected
+- [x] `POST /api/chat` reaches Ollama (Llama 3.1 8B) over Tailscale
+- [x] Planner pass emits tool calls (`query_window`, `find_anomalies`, `compare_windows`)
+- [x] Tool results pull live data from InfluxDB with localised timestamps
+- [x] Narrator pass renders a natural-language answer in the Chat panel
 
 ---
 

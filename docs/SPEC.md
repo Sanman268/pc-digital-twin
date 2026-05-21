@@ -44,9 +44,12 @@ pc-digital-twin/
 │   │   ├── routes_sensor.py         # GET /api/sensor/history
 │   │   ├── routes_events.py         # GET /api/events/boot
 │   │   ├── routes_status.py         # GET /api/status/gateway
-│   │   └── routes_diagnostics.py    # POST /api/diagnostics/analyze
+│   │   └── chat.py                  # POST /api/chat (tool-using LLM agent)
 │   ├── llm/
-│   │   └── agent.py                 # Call Gemma / Claude API
+│   │   ├── llama_client.py          # AsyncOpenAI client → Ollama
+│   │   ├── prompts.py               # System prompt
+│   │   ├── tools.py                 # OpenAI-style tool schemas
+│   │   └── executor.py              # Tool dispatch + Influx queries
 │   ├── models/
 │   │   └── schemas.py               # Pydantic models
 │   ├── main.py                      # FastAPI app + background BLE task
@@ -66,9 +69,8 @@ pc-digital-twin/
 │   │   │   │   ├── PCTwinViewer.tsx  # Three.js canvas wrapper
 │   │   │   │   ├── ModelLoader.ts    # Load .glb, map mesh names
 │   │   │   │   └── SensorOverlay.ts  # Highlight mesh by sensor state
-│   │   │   ├── diagnostics/
-│   │   │   │   ├── DiagnosticsPanel.tsx
-│   │   │   │   └── AlertBadge.tsx
+│   │   │   ├── chat/
+│   │   │   │   └── ChatPanel.tsx
 │   │   │   └── layout/
 │   │   │       ├── Header.tsx
 │   │   │       └── StatusBar.tsx
@@ -197,12 +199,15 @@ GET  /api/status/gateway
      → { connected: bool, last_seen: str, node_id: str }
 ```
 
-### Diagnostics
+### Diagnostics Chat
 ```
-POST /api/diagnostics/analyze
-     body: { range: "1h" }
-     → { summary: str, issues: [...], recommendations: [...] }
+POST /api/chat
+     body: { message: str, history: [{ role, content }] }
+     → { answer: str, tool_calls: [...], data_points: [...], latency_ms: int }
 ```
+Conversational tool-using agent. The planner pass picks from `query_window`,
+`find_anomalies`, and `compare_windows` (see `gateway/llm/tools.py`); the
+narrator pass turns the tool results into a natural-language answer.
 
 ---
 
@@ -272,25 +277,23 @@ The `sensor_node` mesh changes color in real time based on connection status and
 
 ---
 
-## 8. Stage 3 – Diagnostics LLM Prompt Template
+## 8. Stage 3 – Diagnostics Chat Agent
 
-```
-You are an FM diagnostic assistant for a monitored PC case asset.
+Tool-using conversational agent backed by Ollama (Llama 3.1 8B by default,
+served over Tailscale from a workstation). See `docs/STAGE3.md` for the
+architecture writeup and `gateway/llm/prompts.py` for the live system prompt.
 
-Asset: PC_CASE_001
-Sensor location: inside case, near front panel
+Two-pass pipeline per `POST /api/chat` call:
 
-Recent data (last 1 hour):
-- Average temperature : {avg_temp}°C  (baseline: {baseline_temp}°C)
-- Peak temperature    : {max_temp}°C
-- Average humidity    : {avg_humidity}%
-- Vibration RMS       : {avg_vibration} mg  (baseline: {baseline_vibration} mg)
-- Case opening events : {open_events}
-- BLE disconnections  : {disconnections}
+1. **Planner pass** — Llama decides whether to call a tool. Available tools
+   (`gateway/llm/tools.py`):
+   - `query_window(metric, window, aggregation)` — min/max/mean/std over a window
+   - `find_anomalies(metric, window, threshold_sigma)` — z-score outliers
+   - `compare_windows(metric, window_a, window_b, aggregation)` — delta between two windows
+2. **Narrator pass** — Llama turns the tool results into a natural-language reply.
 
-Identify any anomalies, explain the likely cause, and provide
-maintenance recommendations. Be concise.
-```
+Tool arguments are validated with Pydantic; results are capped and
+timestamp-localised before being fed back to the model.
 
 ---
 
@@ -314,10 +317,10 @@ BLE_RETRY_INTERVAL=5
 NODE_ID=TBS2_001
 ASSET_ID=PC_CASE_001
 
-# LLM
-LLM_PROVIDER=claude          # claude | gemma
-ANTHROPIC_API_KEY=sk-ant-...
-GEMMA_API_URL=http://localhost:11434/api/generate
+# Ollama (Stage 3 chat agent)
+OLLAMA_BASE_URL=http://desktop-3dvru40:11434/v1
+OLLAMA_MODEL=llama3.1:8b
+LOCAL_TZ=Asia/Ho_Chi_Minh
 
 # API
 API_HOST=0.0.0.0
@@ -414,10 +417,10 @@ Open Simplicity Studio, import the project from `firmware/`, build, and flash to
 - [ ] Dashboard auto-refreshes every 5 seconds
 
 ### Stage 3 – Diagnostics
-- [ ] `POST /api/diagnostics/analyze` successfully calls the LLM
-- [ ] Prompt is populated with real data from InfluxDB
-- [ ] Diagnostic result is rendered in the Diagnostics Panel
-- [ ] Alert badge appears when an anomaly is detected
+- [ ] `POST /api/chat` reaches the Ollama endpoint over Tailscale
+- [ ] Planner pass emits at least one tool call for "how warm was it overnight?"
+- [ ] Tool results are queried from InfluxDB and timestamps are localised
+- [ ] Narrator pass renders a natural-language answer in the Chat panel
 
 ---
 

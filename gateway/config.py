@@ -20,10 +20,6 @@ class Settings(BaseSettings):
     node_id: str = "TBS2_001"
     asset_id: str = "PC_CASE_001"
 
-    llm_provider: str = "claude"
-    anthropic_api_key: str = ""
-    gemma_api_url: str = "http://localhost:11434/api/generate"
-
     # Ollama (Stage 3 conversational diagnostics agent)
     ollama_base_url: str = "http://desktop-3dvru40:11434/v1"
     ollama_model: str = "llama3.1:8b"
