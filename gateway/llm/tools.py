@@ -1,5 +1,6 @@
 METRIC_ENUM = ["temperature", "humidity", "pressure", "vibration", "light"]
 WINDOW_ENUM = ["1h", "6h", "24h", "7d"]
+HORIZON_ENUM = ["15m", "1h", "6h"]
 
 TOOLS = [
     {
@@ -17,7 +18,10 @@ TOOLS = [
                 "properties": {
                     "metric": {"type": "string", "enum": METRIC_ENUM},
                     "window": {"type": "string", "enum": WINDOW_ENUM},
-                    "aggregation": {"type": "string", "enum": ["min", "max", "mean", "std"]},
+                    "aggregation": {
+                        "type": "string",
+                        "enum": ["min", "max", "mean", "std"],
+                    },
                 },
                 "required": ["metric", "window", "aggregation"],
             },
@@ -62,6 +66,30 @@ TOOLS = [
                     "aggregation": {"type": "string", "enum": ["mean", "max"]},
                 },
                 "required": ["metric", "window_a", "window_b", "aggregation"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "forecast_window",
+            "description": (
+                "Project a sensor forward over a short horizon using a linear "
+                "trend fit on the current active session (samples not separated "
+                "by a powered-off gap). Returns slope_per_hour, the predicted "
+                "value at the end of the horizon, and a series of forecast "
+                "points. If the current session is too short to support the "
+                "horizon, returns ok=false with a reason — use this to answer "
+                "'where is X heading' or 'is X rising/falling'."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "metric": {"type": "string", "enum": METRIC_ENUM},
+                    "history_window": {"type": "string", "enum": WINDOW_ENUM},
+                    "horizon": {"type": "string", "enum": HORIZON_ENUM},
+                },
+                "required": ["metric", "history_window", "horizon"],
             },
         },
     },

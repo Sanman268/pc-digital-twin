@@ -1,6 +1,6 @@
 import logging
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Literal, Optional
 from zoneinfo import ZoneInfo
 
@@ -8,13 +8,21 @@ from pydantic import BaseModel, Field, ValidationError
 
 from config import get_settings
 from influx.writer import query_api
+from llm.forecast import forecast as run_forecast
 
 log = logging.getLogger(__name__)
 
 Metric = Literal["temperature", "humidity", "pressure", "vibration", "light"]
 Window = Literal["1h", "6h", "24h", "7d"]
+Horizon = Literal["15m", "1h", "6h"]
 Aggregation = Literal["min", "max", "mean", "std"]
 CompareAggregation = Literal["mean", "max"]
+
+HORIZON_TO_TIMEDELTA: dict[str, timedelta] = {
+    "15m": timedelta(minutes=15),
+    "1h": timedelta(hours=1),
+    "6h": timedelta(hours=6),
+}
 
 METRIC_TO_FIELD: dict[str, str] = {
     "temperature": "temperature_c",
@@ -44,7 +52,9 @@ def _to_local_iso(dt: datetime) -> str:
     """Local wall-clock time, no microseconds or tz suffix.
     Server has already converted; suppressing the offset avoids accidentally
     biasing the LLM toward a region's language."""
-    return dt.astimezone(_local_tz()).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
+    return (
+        dt.astimezone(_local_tz()).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
+    )
 
 
 class QueryWindowParams(BaseModel):
@@ -64,6 +74,12 @@ class CompareWindowsParams(BaseModel):
     window_a: Window
     window_b: Window
     aggregation: CompareAggregation
+
+
+class ForecastWindowParams(BaseModel):
+    metric: Metric
+    history_window: Window
+    horizon: Horizon
 
 
 def _flux_aggregate(field: str, window: str, agg: str, bucket: str) -> str:
@@ -198,10 +214,58 @@ def execute_compare_windows(p: CompareWindowsParams) -> dict[str, Any]:
     }
 
 
+def execute_forecast_window(p: ForecastWindowParams) -> dict[str, Any]:
+    """Pull history, fit a line on the current session, project forward.
+
+    The forecaster itself is pure — this wrapper just handles I/O and shapes
+    the result for the LLM (local-time ISO timestamps, rounded numbers).
+    """
+    field = METRIC_TO_FIELD[p.metric]
+    raw = _run_raw(field, p.history_window)
+    horizon_td = HORIZON_TO_TIMEDELTA[p.horizon]
+    result = run_forecast(raw, horizon=horizon_td)
+
+    base: dict[str, Any] = {
+        "metric": p.metric,
+        "field": field,
+        "history_window": p.history_window,
+        "horizon": p.horizon,
+        "unit": METRIC_TO_UNIT[p.metric],
+    }
+    if not result.ok:
+        base["ok"] = False
+        base["reason"] = result.reason
+        return base
+
+    assert result.fit_start is not None
+    assert result.fit_end is not None
+    assert result.horizon_end is not None
+    assert result.horizon_end_value is not None
+    assert result.slope_per_hour is not None
+
+    base.update(
+        {
+            "ok": True,
+            "slope_per_hour": round(result.slope_per_hour, 4),
+            "fit_start": _to_local_iso(result.fit_start),
+            "fit_end": _to_local_iso(result.fit_end),
+            "fit_point_count": result.fit_point_count,
+            "horizon_end": _to_local_iso(result.horizon_end),
+            "horizon_end_value": round(result.horizon_end_value, 3),
+            "points": [
+                {"time": _to_local_iso(pt.time), "value": round(pt.value, 3)}
+                for pt in result.points[:MAX_POINTS]
+            ],
+        }
+    )
+    return base
+
+
 TOOL_DISPATCH: dict[str, tuple[type[BaseModel], Any]] = {
     "query_window": (QueryWindowParams, execute_query_window),
     "find_anomalies": (FindAnomaliesParams, execute_find_anomalies),
     "compare_windows": (CompareWindowsParams, execute_compare_windows),
+    "forecast_window": (ForecastWindowParams, execute_forecast_window),
 }
 
 
