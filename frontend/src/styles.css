@@ -170,6 +170,78 @@ select:focus { outline: none; border-color: var(--accent); }
 .dim  { color: var(--text-dim); }
 .muted { color: var(--text-secondary); }
 
+/* ---- Three-column desktop dashboard layout ---- */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-controls {
+  padding: var(--sp-4) var(--sp-5) 0;
+}
+
+.dashboard-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(340px, 380px) minmax(0, 1fr) minmax(420px, 500px);
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+  width: 100%;
+  max-width: 1800px;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+.dashboard-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Center 3D canvas is the main canvas; sized by viewport, other columns match it. */
+.dashboard-center .twin-viewer {
+  height: min(78vh, 820px);
+  min-height: 520px;
+}
+
+/* Left chat sidebar fills the row height and scrolls internally. */
+.dashboard-left {
+  overflow: hidden;
+}
+
+/* Right sensor panel stacks cards vertically; scrolls if taller than the row. */
+.dashboard-right {
+  overflow-y: auto;
+  gap: var(--sp-3);
+}
+
+.sensor-panel-note {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  padding: 2px 2px 4px;
+}
+
+/* Tablet / mobile: stack the three columns and let the page scroll. */
+@media (max-width: 1100px) {
+  .dashboard-main {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-col {
+    min-height: auto;
+  }
+  .dashboard-left,
+  .dashboard-right {
+    overflow: visible;
+  }
+  .dashboard-center .twin-viewer {
+    height: min(70vh, 640px);
+  }
+}
+
 .recharts-cartesian-grid line {
   stroke: var(--border) !important;
 }

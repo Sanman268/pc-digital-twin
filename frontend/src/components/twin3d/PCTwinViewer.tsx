@@ -12,11 +12,6 @@ import { useGatewayStatus } from '../../hooks/useGatewayStatus'
 import { useLatest } from '../../hooks/useLatest'
 import { applySensorState, deriveState } from './SensorOverlay'
 import { getAssetProperties, type AssetStatus } from './assetProperties'
-import TemperatureChart from '../charts/TemperatureChart'
-import HumidityChart from '../charts/HumidityChart'
-import VibrationChart from '../charts/VibrationChart'
-import AirQualityChart from '../charts/AirQualityChart'
-import ChatPanel from '../chat/ChatPanel'
 
 // Model authored lying on its side; rotate +90 deg around X to stand it up.
 // Flip the sign if it tilts the wrong way for your GLB.
@@ -245,8 +240,7 @@ export default function PCTwinViewer() {
   const [hidden, setHidden] = useState<Set<string>>(() => new Set())
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const [propsFor, setPropsFor] = useState<string | null>(null)
-  const [metricsOpen, setMetricsOpen] = useState(false)
-  const [chatOpen, setChatOpen] = useState(false)
+  const [markerActive, setMarkerActive] = useState(false)
   const [activated, setActivated] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
@@ -327,9 +321,9 @@ export default function PCTwinViewer() {
               state={state}
               selectedName={selectedName}
               hidden={hidden}
-              markerActive={metricsOpen}
+              markerActive={markerActive}
               onSelect={setSelectedName}
-              onMarkerClick={() => setMetricsOpen(o => !o)}
+              onMarkerClick={() => setMarkerActive(o => !o)}
             />
           </Bounds>
 
@@ -377,14 +371,6 @@ export default function PCTwinViewer() {
           : 'click viewer to activate · right-click for menu'}
       </div>
 
-      {/* Bottom toolbar — glassy floating dock */}
-      <ViewerToolbar
-        chatOpen={chatOpen}
-        metricsOpen={metricsOpen}
-        onToggleChat={() => setChatOpen(v => !v)}
-        onToggleMetrics={() => setMetricsOpen(v => !v)}
-      />
-
       {/* Selection + hidden-count pills */}
       <div style={{
         position: 'absolute',
@@ -424,16 +410,6 @@ export default function PCTwinViewer() {
       {/* Properties panel */}
       {propsFor && (
         <PropertiesPanel name={propsFor} onClose={() => setPropsFor(null)} />
-      )}
-
-      {/* Live charts popup (triggered by sensor marker click) */}
-      {metricsOpen && (
-        <ChartsPopup onClose={() => setMetricsOpen(false)} />
-      )}
-
-      {/* Chat popup (triggered by toolbar) */}
-      {chatOpen && (
-        <ChatPopup onClose={() => setChatOpen(false)} />
       )}
 
       {/* Context menu */}
@@ -499,78 +475,6 @@ const STATUS_COLORS: Record<AssetStatus, string> = {
   warning: '#ffb020',
   fault: '#ff4d4d',
   unknown: '#888',
-}
-
-function ChartsPopup({ onClose }: { onClose: () => void }) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        bottom: 12,
-        zIndex: 40,
-        width: 'min(54%, 620px)',
-        background: '#0f131c',
-        border: '1px solid rgba(255, 138, 26, 0.4)',
-        borderRadius: 10,
-        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 138, 26, 0.18)',
-        fontFamily: 'Inter, Segoe UI, sans-serif',
-        color: '#ddd',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Header */}
-      <div style={{
-        padding: '10px 14px',
-        background: 'rgba(255, 138, 26, 0.08)',
-        borderBottom: '1px solid rgba(255, 138, 26, 0.25)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-      }}>
-        <span style={{
-          width: 8, height: 8, borderRadius: '50%',
-          background: '#ff8a1a', boxShadow: '0 0 8px #ff8a1a',
-        }} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>
-          Sensor Live Readings
-        </span>
-        <button
-          onClick={onClose}
-          style={{
-            marginLeft: 'auto',
-            background: 'transparent',
-            color: '#aaa',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 20,
-            lineHeight: 1,
-            padding: 0,
-          }}
-          title="Close"
-        >×</button>
-      </div>
-
-      {/* 2×2 chart grid */}
-      <div style={{
-        flex: 1,
-        padding: 10,
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gridTemplateRows: '1fr 1fr',
-        gap: 10,
-        minHeight: 0,
-      }}>
-        <TemperatureChart />
-        <HumidityChart />
-        <VibrationChart />
-        <AirQualityChart />
-      </div>
-    </div>
-  )
 }
 
 function PropertiesPanel({ name, onClose }: { name: string; onClose: () => void }) {
@@ -716,171 +620,6 @@ function Row({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
         fontFamily: mono ? 'JetBrains Mono, Consolas, monospace' : undefined,
         wordBreak: 'break-all',
       }}>{v}</span>
-    </div>
-  )
-}
-
-function ViewerToolbar({
-  chatOpen,
-  metricsOpen,
-  onToggleChat,
-  onToggleMetrics,
-}: {
-  chatOpen: boolean
-  metricsOpen: boolean
-  onToggleChat: () => void
-  onToggleMetrics: () => void
-}) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 16,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 30,
-        display: 'flex',
-        gap: 4,
-        padding: 6,
-        background: 'rgba(15, 19, 28, 0.72)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: 999,
-        boxShadow: '0 8px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255,255,255,0.05)',
-        backdropFilter: 'blur(12px) saturate(1.4)',
-        WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
-        fontFamily: 'Inter, Segoe UI, sans-serif',
-      }}
-    >
-      <ToolbarButton
-        active={metricsOpen}
-        onClick={onToggleMetrics}
-        title="Live sensor charts"
-        accent="#ff8a1a"
-        icon={
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 3v18h18" />
-            <path d="M7 14l4-4 3 3 5-6" />
-          </svg>
-        }
-        label="Charts"
-      />
-      <ToolbarButton
-        active={chatOpen}
-        onClick={onToggleChat}
-        title="Diagnostics chat"
-        accent="#00e5ff"
-        icon={
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 12a8 8 0 1 1-3-6.24L21 4l-1.05 3.43A7.96 7.96 0 0 1 21 12z" />
-            <path d="M8 11h.01M12 11h.01M16 11h.01" />
-          </svg>
-        }
-        label="Chat"
-      />
-    </div>
-  )
-}
-
-function ToolbarButton({
-  active,
-  onClick,
-  icon,
-  label,
-  title,
-  accent,
-}: {
-  active: boolean
-  onClick: () => void
-  icon: React.ReactNode
-  label: string
-  title: string
-  accent: string
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '7px 12px',
-        fontSize: 12,
-        fontWeight: 500,
-        background: active ? `${accent}22` : 'transparent',
-        color: active ? accent : '#cfd6e1',
-        border: `1px solid ${active ? `${accent}66` : 'transparent'}`,
-        borderRadius: 999,
-        cursor: 'pointer',
-        transition: 'background 120ms, color 120ms, border-color 120ms',
-      }}
-      onMouseEnter={(e) => {
-        if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
-      }}
-      onMouseLeave={(e) => {
-        if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
-      }}
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
-  )
-}
-
-function ChatPopup({ onClose }: { onClose: () => void }) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: 12,
-        top: 12,
-        bottom: 76,
-        zIndex: 40,
-        width: 'min(42%, 460px)',
-        background: '#0f131c',
-        border: '1px solid rgba(0, 229, 255, 0.35)',
-        borderRadius: 10,
-        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 229, 255, 0.15)',
-        fontFamily: 'Inter, Segoe UI, sans-serif',
-        color: '#ddd',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
-      <div style={{
-        padding: '10px 14px',
-        background: 'rgba(0, 229, 255, 0.07)',
-        borderBottom: '1px solid rgba(0, 229, 255, 0.22)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-      }}>
-        <span style={{
-          width: 8, height: 8, borderRadius: '50%',
-          background: '#00e5ff', boxShadow: '0 0 8px #00e5ff',
-        }} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>
-          Diagnostics Chat
-        </span>
-        <button
-          onClick={onClose}
-          style={{
-            marginLeft: 'auto',
-            background: 'transparent',
-            color: '#aaa',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 20,
-            lineHeight: 1,
-            padding: 0,
-          }}
-          title="Close"
-        >×</button>
-      </div>
-      <div style={{ flex: 1, minHeight: 0, padding: 10, display: 'flex' }}>
-        <ChatPanel embedded />
-      </div>
     </div>
   )
 }
