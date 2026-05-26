@@ -111,7 +111,7 @@ the **vibration spike at 19:05:33** captured when the board was bumped.
 | 1 — Data Collection | BLE → Gateway → InfluxDB | ✅ Done |
 | 2 — Visualization | Charts + 3D model | ✅ Done (named-mesh color overlay pending Blender re-export) |
 | 3 — Diagnostics | LLM chat agent + tools | ✅ Done at `v0.3.2` — see [`docs/STAGE3.md`](docs/STAGE3.md) |
-| 4 — Predictive layer | Intra-session forecasting + measured accuracy | 🟡 In progress — Phases 0/1/2/5 done, 3/4 pending |
+| 4 — Predictive layer | Intra-session forecasting + measured accuracy | 🟡 In progress — predictive core validated; Phases 3 (drift) and 4 (frontend overlay) pending |
 
 **Stage 4 — what's shipped**: Phase 0 (`gateway/verify_data.py` readiness
 tool — locks scope to intra-session per the live-data verdict), Phase 1
@@ -122,9 +122,41 @@ Phase 5 (backtest harness in `gateway/llm/backtest.py` + the
 demand). The forecaster is now self-grading: the agent can answer
 *"how trustworthy is the forecast?"* with measured numbers rather than
 fabricated confidence. The dashboard does not yet overlay forecasts
-(Phase 4), and baseline / drift tracking has not started (Phase 3).
-The project is **not** described as a *predictive twin* in this README
-until a live MAE/RMSE number from real data is quoted here.
+(Phase 4), and baseline / drift tracking has not started (Phase 3),
+so "Stage 4 fully complete" / "solid Level 3" is not claimed yet — but
+the **predictive core itself is validated** with the live backtest
+numbers below.
+
+### Measured live forecast accuracy
+
+Captured by `python gateway/run_backtest.py --history 7d` against the
+local `fm_simulation` bucket on 2026-05-26 (≈7 days of data, host
+running roughly 10:00–02:00 local on irregular days). The 6h horizon
+has no usable anchors because no single active session is long enough
+to provide 2 × 6h of history *and* 6h of future inside the same
+session.
+
+| Metric | Horizon | Anchors | MAE | RMSE | Unit |
+|---|---|---:|---:|---:|---|
+| temperature | 15 min | 4032 | 0.91 | 1.22 | °C |
+| temperature | 1 h    | 2247 | 0.93 | 1.17 | °C |
+| humidity    | 15 min | 4038 | 3.89 | 5.07 | %    |
+| humidity    | 1 h    | 2247 | 6.47 | 8.17 | %    |
+| pressure    | 15 min | 4044 | 0.66 | 1.03 | hPa  |
+| pressure    | 1 h    | 2247 | 1.46 | 1.80 | hPa  |
+| vibration   | 15 min | 4052 | 0.87 | 1.10 | m/s² |
+| vibration   | 1 h    | 2247 | 0.88 | 1.12 | m/s² |
+| light       | 15 min | 4059 | 3.34 | 4.38 | lux  |
+| light       | 1 h    | 2247 | 4.11 | 4.94 | lux  |
+| *all metrics* | 6 h | 0 | — | — | — — insufficient session length |
+
+Reading these: temperature, pressure, and vibration sit at sub-unit
+MAE over a 1-hour horizon — the forecast is genuinely useful for the
+slow drift in case temperature and atmospheric pressure, and the
+vibration error simply reflects the noise floor. Humidity and light
+react to room HVAC cycles and lighting changes that a linear in-session
+fit cannot anticipate, so their errors are higher and should be read
+as *typical short-horizon uncertainty*, not as a broken model.
 
 See [`CHECKPOINT.md`](CHECKPOINT.md) for the iterative development journal,
 [`docs/STAGE3.md`](docs/STAGE3.md) for the chat agent design + Stage 4
