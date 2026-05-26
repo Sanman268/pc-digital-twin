@@ -8,14 +8,20 @@ from models.schemas import SensorReading
 log = logging.getLogger(__name__)
 
 
-def parse_payload(payload: bytes, *, node_id: str, asset_id: str) -> Optional[SensorReading]:
+def parse_payload(
+    payload: bytes, *, node_id: str, asset_id: str
+) -> Optional[SensorReading]:
     try:
         raw = json.loads(payload.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
         log.warning("Unparseable BLE payload (%d bytes)", len(payload))
         return None
 
-    vx, vy, vz = float(raw.get("vx", 0)), float(raw.get("vy", 0)), float(raw.get("vz", 0))
+    vx, vy, vz = (
+        float(raw.get("vx", 0)),
+        float(raw.get("vy", 0)),
+        float(raw.get("vz", 0)),
+    )
     vibration_rms = math.sqrt(vx * vx + vy * vy + vz * vz)
 
     return SensorReading(

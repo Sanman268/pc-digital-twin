@@ -12,6 +12,7 @@ The pure logic (session detection, hour-of-day histogram, verdict) lives in
 this file and is unit-tested in tests/test_verify_data.py without touching
 InfluxDB. Only ``_fetch_timestamps`` and ``main`` perform I/O.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -23,6 +24,7 @@ from zoneinfo import ZoneInfo
 
 
 # ---------- pure data model ----------
+
 
 @dataclass(frozen=True)
 class Session:
@@ -56,6 +58,7 @@ class ReadinessReport:
 
 
 # ---------- pure functions (CI Tier 1 testable) ----------
+
 
 def detect_sessions(
     timestamps: list[datetime],
@@ -125,9 +128,7 @@ def actual_interval_seconds(
     """
     if len(timestamps) < 2:
         return None
-    intervals = [
-        (b - a).total_seconds() for a, b in zip(timestamps, timestamps[1:])
-    ]
+    intervals = [(b - a).total_seconds() for a, b in zip(timestamps, timestamps[1:])]
     if gap_threshold_s is not None:
         intervals = [d for d in intervals if d <= gap_threshold_s]
     if not intervals:
@@ -153,8 +154,7 @@ def per_feature_verdict(
     # Density: actual sample rate should be within 2x of expected, else BLE
     # dropout is too heavy for a reliable short-horizon fit.
     dense = (
-        actual_interval_s is not None
-        and actual_interval_s <= expected_interval_s * 2.5
+        actual_interval_s is not None and actual_interval_s <= expected_interval_s * 2.5
     )
 
     # Intra-session forecast / time_to_threshold: need at least one session
@@ -174,7 +174,10 @@ def per_feature_verdict(
             f"sample rate ~{actual_interval_s:.1f}s vs expected {expected_interval_s:.1f}s",
         )
     else:
-        intra = ("GO", f"{len(long_enough)} session(s) >= {_fmt_td(2 * forecast_horizon)}")
+        intra = (
+            "GO",
+            f"{len(long_enough)} session(s) >= {_fmt_td(2 * forecast_horizon)}",
+        )
 
     out["intra_session_forecast"] = intra
     out["time_to_threshold"] = intra  # same prerequisites
@@ -236,6 +239,7 @@ def build_report(
 
 # ---------- formatting ----------
 
+
 def _fmt_td(td: timedelta) -> str:
     """Compact human duration: '4h 22m', '19h 04m', '0m 12s'."""
     total = int(td.total_seconds())
@@ -274,7 +278,9 @@ def format_report(r: ReadinessReport, tz: ZoneInfo) -> str:
     lines.append(f"Span:            {_fmt_td(span)}  ({first_local}  ->  {last_local})")
     lines.append(f"Total samples:   {r.total_samples:,}")
     if r.actual_interval_s is not None:
-        ratio = r.actual_interval_s / r.expected_interval_s if r.expected_interval_s else 0
+        ratio = (
+            r.actual_interval_s / r.expected_interval_s if r.expected_interval_s else 0
+        )
         flag = "OK" if ratio <= 1.5 else ("HIGH" if ratio <= 3 else "VERY HIGH")
         lines.append(
             f"Actual rate:     ~{r.actual_interval_s:.1f}s/sample "
@@ -328,10 +334,14 @@ def format_report(r: ReadinessReport, tz: ZoneInfo) -> str:
     intra_v = r.verdicts.get("intra_session_forecast", ("", ""))[0]
     seasonal_v = r.verdicts.get("seasonal_daily", ("", ""))[0]
     if intra_v == "GO" and seasonal_v != "GO":
-        lines.append("  Scope Stage 4 to intra-session prediction. Reset forecast state")
+        lines.append(
+            "  Scope Stage 4 to intra-session prediction. Reset forecast state"
+        )
         lines.append("  on each session boundary. Revisit seasonal after 24/7 capture.")
     elif intra_v == "GO" and seasonal_v == "GO":
-        lines.append("  Data supports the full Stage 4 plan (intra-session + seasonal).")
+        lines.append(
+            "  Data supports the full Stage 4 plan (intra-session + seasonal)."
+        )
     else:
         lines.append("  Data is not yet sufficient for prediction. Collect more before")
         lines.append("  building forecast tools, or accept very short horizons only.")
@@ -340,6 +350,7 @@ def format_report(r: ReadinessReport, tz: ZoneInfo) -> str:
 
 
 # ---------- I/O layer ----------
+
 
 def _fetch_timestamps(field_name: str, days: int) -> list[datetime]:
     """Pull all sample timestamps for one field over the lookback window.
@@ -374,9 +385,12 @@ def _fetch_timestamps(field_name: str, days: int) -> list[datetime]:
 
 # ---------- CLI ----------
 
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Stage 4 Phase 0 — data readiness report.")
-    ap.add_argument("--days", type=int, default=30, help="Lookback window in days (default 30).")
+    ap.add_argument(
+        "--days", type=int, default=30, help="Lookback window in days (default 30)."
+    )
     ap.add_argument(
         "--gap-minutes",
         type=float,
@@ -395,7 +409,9 @@ def main() -> int:
     s = get_settings()
     tz = ZoneInfo(s.local_tz)
 
-    print(f"Querying InfluxDB at {s.influxdb_url} (bucket={s.influxdb_bucket}, last {args.days}d) ...")
+    print(
+        f"Querying InfluxDB at {s.influxdb_url} (bucket={s.influxdb_bucket}, last {args.days}d) ..."
+    )
     try:
         timestamps = _fetch_timestamps(args.field, args.days)
     except Exception as e:

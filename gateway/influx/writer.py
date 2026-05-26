@@ -1,6 +1,5 @@
 import logging
 from functools import lru_cache
-from typing import Optional
 
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import ASYNCHRONOUS
@@ -14,7 +13,9 @@ log = logging.getLogger(__name__)
 @lru_cache
 def _client() -> InfluxDBClient:
     s = get_settings()
-    return InfluxDBClient(url=s.influxdb_url, token=s.influxdb_token, org=s.influxdb_org)
+    return InfluxDBClient(
+        url=s.influxdb_url, token=s.influxdb_token, org=s.influxdb_org
+    )
 
 
 def _write_api():
@@ -72,4 +73,8 @@ def query_history(field: str, range_: str = "1h") -> list[dict]:
       |> keep(columns: ["_time", "_value"])
     '''
     tables = query_api().query(flux, org=s.influxdb_org)
-    return [{"time": rec.get_time(), "value": rec.get_value()} for table in tables for rec in table.records]
+    return [
+        {"time": rec.get_time(), "value": rec.get_value()}
+        for table in tables
+        for rec in table.records
+    ]

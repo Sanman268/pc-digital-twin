@@ -4,6 +4,7 @@ Usage (from gateway/ with the venv active):
     python ble_scan.py
     python ble_scan.py --timeout 15
 """
+
 import argparse
 import asyncio
 from bleak import BleakScanner
@@ -20,7 +21,7 @@ async def main(timeout: float) -> None:
         services = ", ".join(adv.service_uuids) if adv.service_uuids else ""
         rows.append((rssi, name, address, services))
 
-    rows.sort(key=lambda r: (r[0] if isinstance(r[0], int) else -999), reverse=True)
+    rows.sort(key=lambda r: r[0] if isinstance(r[0], int) else -999, reverse=True)
 
     print(f"{'RSSI':>5}  {'NAME':<32}  {'ADDRESS':<20}  SERVICE UUIDS")
     print("-" * 100)

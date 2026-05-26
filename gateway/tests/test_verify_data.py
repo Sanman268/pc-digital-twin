@@ -2,6 +2,7 @@
 
 Pure-function tests — no InfluxDB, no config, no environment required.
 """
+
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -30,9 +31,10 @@ def _series(start: datetime, step_s: float, n: int) -> list[datetime]:
 
 # ---------- detect_sessions ----------
 
+
 def test_detect_sessions_splits_at_large_gap():
-    a = _series(_ts(2026, 5, 24, 21, 0), 2.0, 100)   # ~3m20s of dense samples
-    b = _series(_ts(2026, 5, 25, 21, 0), 2.0, 100)   # next "evening"
+    a = _series(_ts(2026, 5, 24, 21, 0), 2.0, 100)  # ~3m20s of dense samples
+    b = _series(_ts(2026, 5, 25, 21, 0), 2.0, 100)  # next "evening"
     sessions = detect_sessions(a + b, gap_threshold_s=600)
     assert len(sessions) == 2
     assert sessions[0].count == 100
@@ -80,6 +82,7 @@ def test_detect_sessions_empty_and_single():
 
 # ---------- hour_of_day_histogram ----------
 
+
 def test_hour_histogram_buckets_by_local_hour():
     tz = ZoneInfo("Asia/Ho_Chi_Minh")  # UTC+7
     # 14:30 UTC == 21:30 local
@@ -88,7 +91,7 @@ def test_hour_histogram_buckets_by_local_hour():
     assert sum(hist.values()) == 60
     assert hist[21] == 30  # first half-hour falls in 21:xx local
     assert hist[22] == 30
-    assert hist[14] == 0   # UTC hour must not leak through
+    assert hist[14] == 0  # UTC hour must not leak through
 
 
 def test_hour_histogram_always_has_24_keys_even_when_empty():
@@ -99,6 +102,7 @@ def test_hour_histogram_always_has_24_keys_even_when_empty():
 
 # ---------- distinct_local_days ----------
 
+
 def test_distinct_local_days_handles_tz_rollover():
     tz = ZoneInfo("Asia/Ho_Chi_Minh")  # UTC+7
     # 18:00 UTC on May 24 == 01:00 local May 25 — counts as May 25 locally.
@@ -108,11 +112,12 @@ def test_distinct_local_days_handles_tz_rollover():
 
 # ---------- gap + interval ----------
 
+
 def test_largest_gap_finds_the_outlier():
     pts = [
         _ts(2026, 5, 24, 21, 0, 0),
         _ts(2026, 5, 24, 21, 0, 2),
-        _ts(2026, 5, 24, 23, 30, 0),   # big jump
+        _ts(2026, 5, 24, 23, 30, 0),  # big jump
         _ts(2026, 5, 24, 23, 30, 2),
     ]
     gap = largest_gap(pts)
@@ -135,6 +140,7 @@ def test_actual_interval_seconds_short_series_is_none():
 
 
 # ---------- verdicts ----------
+
 
 def test_verdict_evenings_only_host_matches_stage4_doc():
     """A ~4.5h evening session w/ dense samples but no full-day coverage —
@@ -170,19 +176,25 @@ def test_verdict_full_day_coverage_unlocks_seasonal():
 def test_verdict_short_session_fails_intra_session():
     # Only 30 min of data — shorter than 2x the default 1h horizon.
     pts = _series(_ts(2026, 5, 24, 21, 0), 2.0, 900)
-    report = build_report(pts, ZoneInfo("UTC"), expected_interval_s=2.0, gap_threshold_s=600)
+    report = build_report(
+        pts, ZoneInfo("UTC"), expected_interval_s=2.0, gap_threshold_s=600
+    )
     assert report.verdicts["intra_session_forecast"][0] == "NOT READY"
 
 
 def test_verdict_sparse_samples_demotes_to_partial():
     # Long session but sample rate 4x expected — heavy dropout.
     pts = _series(_ts(2026, 5, 24, 21, 0), 8.0, 3000)  # ~6.7h @ 8s
-    report = build_report(pts, ZoneInfo("UTC"), expected_interval_s=2.0, gap_threshold_s=600)
+    report = build_report(
+        pts, ZoneInfo("UTC"), expected_interval_s=2.0, gap_threshold_s=600
+    )
     assert report.verdicts["intra_session_forecast"][0] == "PARTIAL"
 
 
 def test_verdict_empty_series_is_not_ready_everywhere():
-    report = build_report([], ZoneInfo("UTC"), expected_interval_s=2.0, gap_threshold_s=600)
+    report = build_report(
+        [], ZoneInfo("UTC"), expected_interval_s=2.0, gap_threshold_s=600
+    )
     for verdict, _ in report.verdicts.values():
         assert verdict == "NOT READY"
 
@@ -195,7 +207,10 @@ def test_per_feature_verdict_custom_horizon():
     days = distinct_local_days(pts, ZoneInfo("UTC"))
     interval = actual_interval_seconds(pts)
     verdicts = per_feature_verdict(
-        sessions, hist, days, interval,
+        sessions,
+        hist,
+        days,
+        interval,
         expected_interval_s=2.0,
         forecast_horizon=timedelta(minutes=15),
     )
@@ -203,6 +218,7 @@ def test_per_feature_verdict_custom_horizon():
 
 
 # ---------- formatting smoke ----------
+
 
 def test_format_report_runs_on_empty_and_populated():
     tz = ZoneInfo("UTC")
