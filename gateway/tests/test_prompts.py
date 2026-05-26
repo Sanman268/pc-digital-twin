@@ -48,3 +48,16 @@ def test_system_prompt_covers_each_supported_horizon():
 
     missing = [h for h in HORIZON_TO_TIMEDELTA if h not in SYSTEM_PROMPT]
     assert not missing, f"SYSTEM_PROMPT no longer mentions these horizons: {missing}"
+
+
+def test_forecast_accuracy_narration_quotes_parameters():
+    """The narrator must quote n_anchors / history_window / horizon
+    alongside MAE/RMSE so the user can tell whether two accuracy
+    figures (e.g. README vs live chat) are actually comparable."""
+    required = ("n_anchors", "history_window", "horizon")
+    missing = [t for t in required if t not in SYSTEM_PROMPT]
+    assert not missing, (
+        "SYSTEM_PROMPT no longer instructs the narrator to quote "
+        f"{missing} alongside MAE/RMSE; without it users can't tell "
+        "whether two accuracy numbers are directly comparable."
+    )

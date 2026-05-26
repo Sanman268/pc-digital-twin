@@ -17,7 +17,7 @@ dist/
 # tsc emit artifacts (Vite bundles directly; tsc is typecheck-only via noEmit)
 frontend/src/**/*.js
 frontend/src/**/*.d.ts
-frontend/src/**/*.tsbuildinfo
+frontend/**/*.tsbuildinfo
 
 # Local scratch / test files
 chat-test.json

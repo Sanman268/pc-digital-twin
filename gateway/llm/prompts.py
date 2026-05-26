@@ -42,7 +42,10 @@ Forecasting & predictive tools:
   → forecast_window. Quote slope_per_hour and horizon_end_value.
 - "how accurate / how trustworthy is the forecast", "what's the typical
   forecast error" → forecast_accuracy. Quote mae and rmse from the result;
-  never invent a confidence number.
+  never invent a confidence number. **Always quote metric,
+  history_window, horizon, and n_anchors alongside the numbers** — MAE
+  and RMSE are only directly comparable when those parameters match,
+  so the user needs them to interpret the figure correctly.
 
 Forecast tools operate on the **current active session only** (samples not
 separated by a powered-off gap). If a forecasting tool returns ok=false,

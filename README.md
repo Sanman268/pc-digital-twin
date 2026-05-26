@@ -158,6 +158,14 @@ react to room HVAC cycles and lighting changes that a linear in-session
 fit cannot anticipate, so their errors are higher and should be read
 as *typical short-horizon uncertainty*, not as a broken model.
 
+> **Comparing these numbers to chat output.** Every row above uses
+> `history_window=7d`. Live `forecast_accuracy` calls from the chat
+> agent may pick a different history window depending on the question,
+> so the figures can shift. The agent is instructed to quote
+> `metric`, `history_window`, `horizon`, and `n_anchors` alongside
+> any MAE/RMSE it reports — only compare numbers that share those
+> four parameters.
+
 See [`CHECKPOINT.md`](CHECKPOINT.md) for the iterative development journal,
 [`docs/STAGE3.md`](docs/STAGE3.md) for the chat agent design + Stage 4
 direction, and [`docs/SPEC.md`](docs/SPEC.md) for the original project
