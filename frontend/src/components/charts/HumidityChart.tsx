@@ -7,7 +7,7 @@ import ChartLegend from './ChartLegend'
 import ThresholdBadge from './ThresholdBadge'
 
 const HUMIDITY_CEILING_PCT = 75
-const FORECAST_HORIZON = '1h'
+const FORECAST_HORIZON = '15m'
 
 export default function HumidityChart() {
   const { data } = useSensorData('humidity_pct')

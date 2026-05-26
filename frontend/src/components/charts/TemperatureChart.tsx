@@ -7,7 +7,12 @@ import ChartLegend from './ChartLegend'
 import ThresholdBadge from './ThresholdBadge'
 
 const TEMP_CEILING_C = 35
-const FORECAST_HORIZON = '1h'
+// 15m horizon needs >= 30min of in-session history, which almost
+// every working session has -- so the dashed overlay actually shows
+// up. The earlier reason for using 1h here (right-edge compression
+// against a categorical XAxis) was resolved by the time-axis fix in
+// 2cb63f1.
+const FORECAST_HORIZON = '15m'
 
 export default function TemperatureChart() {
   const { data } = useSensorData('temperature_c')

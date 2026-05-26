@@ -4,7 +4,7 @@ import { useForecast } from '../../hooks/useForecast'
 import { combineHistoryAndForecast, nowBoundaryMs } from '../../lib/forecastOverlay'
 import ChartLegend from './ChartLegend'
 
-const FORECAST_HORIZON = '1h'
+const FORECAST_HORIZON = '15m'
 
 export default function VibrationChart() {
   const { data } = useSensorData('vibration_rms')
