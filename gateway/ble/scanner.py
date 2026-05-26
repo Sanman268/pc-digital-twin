@@ -26,10 +26,10 @@ from models.schemas import SensorReading
 log = logging.getLogger(__name__)
 
 # Standard Bluetooth SIG Environmental Sensing characteristics
-UUID_TEMPERATURE   = "00002a6e-0000-1000-8000-00805f9b34fb"  # sint16 LE, 0.01 C
-UUID_HUMIDITY      = "00002a6f-0000-1000-8000-00805f9b34fb"  # uint16 LE, 0.01 %
-UUID_PRESSURE      = "00002a6d-0000-1000-8000-00805f9b34fb"  # uint32 LE, 0.1 Pa
-UUID_UV_INDEX      = "00002a76-0000-1000-8000-00805f9b34fb"  # uint8
+UUID_TEMPERATURE = "00002a6e-0000-1000-8000-00805f9b34fb"  # sint16 LE, 0.01 C
+UUID_HUMIDITY = "00002a6f-0000-1000-8000-00805f9b34fb"  # uint16 LE, 0.01 %
+UUID_PRESSURE = "00002a6d-0000-1000-8000-00805f9b34fb"  # uint32 LE, 0.1 Pa
+UUID_UV_INDEX = "00002a76-0000-1000-8000-00805f9b34fb"  # uint8
 
 # Silicon Labs custom characteristic on the same service (Ambient Light)
 UUID_AMBIENT_LIGHT = "c8546913-bfd9-45eb-8dde-9f8754f4a32e"  # uint32 LE, 0.01 lux
@@ -38,7 +38,7 @@ UUID_AMBIENT_LIGHT = "c8546913-bfd9-45eb-8dde-9f8754f4a32e"  # uint32 LE, 0.01 l
 UUID_BATTERY_LEVEL = "00002a19-0000-1000-8000-00805f9b34fb"  # uint8 %
 
 # Silicon Labs Acceleration & Orientation service (notify-only)
-UUID_ACCELERATION  = "c4c1f6e2-4be5-11e5-885d-feff819cdc9f"  # 3x sint16 LE, mg
+UUID_ACCELERATION = "c4c1f6e2-4be5-11e5-885d-feff819cdc9f"  # 3x sint16 LE, mg
 
 
 _last_seen: Optional[datetime] = None
@@ -88,8 +88,8 @@ async def _read_sensors(client: BleakClient) -> SensorReading:
         humidity_pct=humidity_pct,
         pressure_hpa=pressure_hpa,
         light_lux=light_lux,
-        air_quality_index=0,   # not present on Thunderboard Sense v1
-        co2_ppm=0,             # not present on Thunderboard Sense v1
+        air_quality_index=0,  # not present on Thunderboard Sense v1
+        co2_ppm=0,  # not present on Thunderboard Sense v1
         vibration_rms=vibration_rms_mg,
         accel_x=ax,
         accel_y=ay,
@@ -120,8 +120,10 @@ async def _connect_and_poll(address: str) -> None:
                     await write_sensor_reading(reading)
                     log.debug(
                         "T=%.2fC H=%.2f%% P=%.1fhPa L=%.1flx |a|=%.0fmg",
-                        reading.temperature_c, reading.humidity_pct,
-                        reading.pressure_hpa, reading.light_lux,
+                        reading.temperature_c,
+                        reading.humidity_pct,
+                        reading.pressure_hpa,
+                        reading.light_lux,
                         reading.vibration_rms,
                     )
                 except Exception as e:
@@ -136,9 +138,15 @@ async def _discover_device(name_substr: str, timeout: float):
     devices = await BleakScanner.discover(timeout=timeout, return_adv=True)
     needle = name_substr.lower()
     for _addr, (dev, adv) in devices.items():
-        n = (dev.name or adv.local_name or "")
+        n = dev.name or adv.local_name or ""
         if needle in n.lower():
-            log.info("Matched '%s' -> %s @ %s (RSSI %s)", name_substr, n, dev.address, adv.rssi)
+            log.info(
+                "Matched '%s' -> %s @ %s (RSSI %s)",
+                name_substr,
+                n,
+                dev.address,
+                adv.rssi,
+            )
             return dev
     return None
 
@@ -154,7 +162,9 @@ async def run_ble_loop() -> None:
                 log.info("Scanning for '%s' ...", s.ble_device_name)
                 dev = await _discover_device(s.ble_device_name, s.ble_scan_timeout)
                 if dev is None:
-                    log.warning("Device not found, retrying in %ss", s.ble_retry_interval)
+                    log.warning(
+                        "Device not found, retrying in %ss", s.ble_retry_interval
+                    )
                     await asyncio.sleep(s.ble_retry_interval)
                     continue
                 address = dev.address

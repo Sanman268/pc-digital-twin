@@ -13,8 +13,13 @@ def history(range: str = Query("1h"), field: str = Query("temperature_c")):
 @router.get("/latest")
 def latest():
     fields = [
-        "temperature_c", "humidity_pct", "pressure_hpa", "light_lux",
-        "air_quality_index", "co2_ppm", "vibration_rms",
+        "temperature_c",
+        "humidity_pct",
+        "pressure_hpa",
+        "light_lux",
+        "air_quality_index",
+        "co2_ppm",
+        "vibration_rms",
     ]
     result: dict = {}
     for f in fields:

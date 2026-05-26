@@ -3,6 +3,7 @@
 Usage (from gateway/ with venv active):
     python ble_probe.py XX:XX:XX:XX:XX:XX
 """
+
 import argparse
 import asyncio
 from bleak import BleakClient
@@ -20,7 +21,9 @@ async def main(address: str) -> None:
                 if "read" in char.properties:
                     try:
                         value = await client.read_gatt_char(char.uuid)
-                        print(f"           value (hex): {value.hex()}  len={len(value)}")
+                        print(
+                            f"           value (hex): {value.hex()}  len={len(value)}"
+                        )
                     except Exception as e:
                         print(f"           read failed: {e}")
             print()

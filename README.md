@@ -44,6 +44,14 @@ the **vibration spike at 19:05:33** captured when the board was bumped.
   that occasionally emit tool calls as inline JSON, plus tz-aware
   timestamps so the chat and the charts agree. See
   [`docs/STAGE3.md`](docs/STAGE3.md).
+- **Forecasting tools (Stage 4, in progress)** — two additional LLM
+  tools, `forecast_window` and `time_to_threshold`, built on a pure
+  least-squares trend fit restricted to the **current active session**
+  (samples not separated by a powered-off gap). Both refuse rather than
+  fabricate when the data is too short or the trend points the wrong
+  way. UI overlay and validated forecast accuracy are still to come —
+  see [Status](#status) and [`docs/STAGE3.md`](docs/STAGE3.md) for
+  Stage 4 direction.
 - **Hardware adaptation** — the spec assumed a Thunderboard Sense 2 with
   custom firmware emitting JSON-over-notify; the actual hardware was a
   Sense v1 (BRD4160A) running stock SiLabs demo firmware. The gateway was
@@ -99,6 +107,17 @@ the **vibration spike at 19:05:33** captured when the board was bumped.
 | 1 — Data Collection | BLE → Gateway → InfluxDB | ✅ Done |
 | 2 — Visualization | Charts + 3D model | ✅ Done (named-mesh color overlay pending Blender re-export) |
 | 3 — Diagnostics | LLM chat agent + tools | ✅ Done at `v0.3.2` — see [`docs/STAGE3.md`](docs/STAGE3.md) |
+| 4 — Predictive layer | Intra-session forecasting | 🟡 In progress at `v0.4.0` — Phases 0/1/2 done, 3/4/5 pending |
+
+**Stage 4 — what shipped in `v0.4.0`**: Phase 0 (`gateway/verify_data.py`
+readiness tool — locks scope to intra-session per the live-data verdict),
+Phase 1 (`forecast_window` LLM tool, pure linear-trend engine in
+`gateway/llm/forecast.py`), Phase 2 (`time_to_threshold` LLM tool). The
+agent can answer "where is X heading?" and "when will X reach Y?" but
+only via the chat endpoint — the dashboard does not yet overlay
+forecasts (Phase 4), and forecast accuracy is not yet measured
+(Phase 5). The project is **not** described as a *predictive twin*
+until Phase 5 backtesting reports MAE/RMSE numbers.
 
 See [`CHECKPOINT.md`](CHECKPOINT.md) for the iterative development journal,
 [`docs/STAGE3.md`](docs/STAGE3.md) for the chat agent design + Stage 4

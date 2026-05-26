@@ -22,10 +22,12 @@ def boot_events(limit: int = Query(10, ge=1, le=500)):
     for table in tables:
         for rec in table.records:
             v = rec.values
-            out.append({
-                "time": rec.get_time(),
-                "boot_counter": v.get("boot_counter"),
-                "firmware_version": v.get("firmware_version"),
-                "power_source": v.get("power_source"),
-            })
+            out.append(
+                {
+                    "time": rec.get_time(),
+                    "boot_counter": v.get("boot_counter"),
+                    "firmware_version": v.get("firmware_version"),
+                    "power_source": v.get("power_source"),
+                }
+            )
     return out

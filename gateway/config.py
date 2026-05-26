@@ -1,10 +1,11 @@
 from functools import lru_cache
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
     influxdb_url: str = "http://localhost:8086"
     influxdb_token: str = ""
@@ -12,10 +13,12 @@ class Settings(BaseSettings):
     influxdb_bucket: str = "fm_simulation"
 
     ble_device_name: str = "Thunder Sense"  # substring match, case-insensitive
-    ble_device_address: str = ""             # optional, e.g. "XX:XX:XX:XX:XX:XX"; takes priority over name
+    ble_device_address: str = (
+        ""  # optional, e.g. "XX:XX:XX:XX:XX:XX"; takes priority over name
+    )
     ble_scan_timeout: int = 10
     ble_retry_interval: int = 5
-    ble_sample_interval: float = 2.0         # seconds between sensor reads
+    ble_sample_interval: float = 2.0  # seconds between sensor reads
 
     node_id: str = "TBS2_001"
     asset_id: str = "PC_CASE_001"

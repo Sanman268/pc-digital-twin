@@ -57,7 +57,7 @@ def _extract_inline_calls(content: str) -> list[tuple[str, dict]]:
                     break
         if end == -1:
             break
-        block = content[i:end + 1]
+        block = content[i : end + 1]
         try:
             obj = json.loads(block)
         except json.JSONDecodeError:
@@ -119,7 +119,9 @@ async def chat_endpoint(req: ChatRequest) -> ChatResponse:
             for idx, (name, args) in enumerate(inline):
                 calls.append((f"inline_{attempt}_{idx}", name, json.dumps(args)))
             if inline:
-                log.info("Salvaged %d inline tool call(s) from text content", len(inline))
+                log.info(
+                    "Salvaged %d inline tool call(s) from text content", len(inline)
+                )
 
         if not calls:
             answer = (msg.content or "").strip()
@@ -133,18 +135,20 @@ async def chat_endpoint(req: ChatRequest) -> ChatResponse:
         # Keep the assistant content only if the real channel was used; otherwise
         # drop it so the salvaged JSON does not pollute history.
         assistant_content = msg.content or "" if msg.tool_calls else ""
-        messages.append({
-            "role": "assistant",
-            "content": assistant_content,
-            "tool_calls": [
-                {
-                    "id": cid,
-                    "type": "function",
-                    "function": {"name": name, "arguments": args},
-                }
-                for cid, name, args in calls
-            ],
-        })
+        messages.append(
+            {
+                "role": "assistant",
+                "content": assistant_content,
+                "tool_calls": [
+                    {
+                        "id": cid,
+                        "type": "function",
+                        "function": {"name": name, "arguments": args},
+                    }
+                    for cid, name, args in calls
+                ],
+            }
+        )
 
         any_error = False
         for cid, name, args_str in calls:
@@ -153,32 +157,40 @@ async def chat_endpoint(req: ChatRequest) -> ChatResponse:
             except json.JSONDecodeError as e:
                 err = f"Invalid JSON arguments: {e}"
                 tool_logs.append(ToolCallLog(name=name, arguments={}, error=err))
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": cid,
-                    "content": f"Error: {err}.{retry_hint}",
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": cid,
+                        "content": f"Error: {err}.{retry_hint}",
+                    }
+                )
                 any_error = True
                 continue
 
             result, error = execute_tool(name, raw_args)
-            tool_logs.append(ToolCallLog(name=name, arguments=raw_args, result=result, error=error))
+            tool_logs.append(
+                ToolCallLog(name=name, arguments=raw_args, result=result, error=error)
+            )
 
             if error:
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": cid,
-                    "content": f"Error: {error}.{retry_hint}",
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": cid,
+                        "content": f"Error: {error}.{retry_hint}",
+                    }
+                )
                 any_error = True
                 continue
 
             data_points.extend(_extract_data_points(result))
-            messages.append({
-                "role": "tool",
-                "tool_call_id": cid,
-                "content": json.dumps(result, default=str, ensure_ascii=False),
-            })
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": cid,
+                    "content": json.dumps(result, default=str, ensure_ascii=False),
+                }
+            )
 
         if not any_error:
             break
