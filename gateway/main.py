@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import get_settings
-from api import chat, routes_sensor, routes_events, routes_status
+from api import chat, routes_forecast, routes_sensor, routes_events, routes_status
 from ble.scanner import run_ble_loop
 
 logging.basicConfig(level=logging.INFO)
@@ -44,6 +44,9 @@ def create_app() -> FastAPI:
     app.include_router(routes_events.router, prefix="/api/events", tags=["events"])
     app.include_router(routes_status.router, prefix="/api/status", tags=["status"])
     app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+    app.include_router(
+        routes_forecast.router, prefix="/api/forecast", tags=["forecast"]
+    )
     return app
 
 
