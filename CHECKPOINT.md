@@ -157,6 +157,41 @@
 - [x] Tool results pull live data from InfluxDB with localised timestamps
 - [x] Narrator pass renders a natural-language answer in the Chat panel
 
+### Stage 4 — Predictive layer
+- [x] Phase 0 — `gateway/verify_data.py` readiness tool; locked scope to intra-session forecasting
+- [x] Phase 1 — `forecast_window` LLM tool + pure linear-trend engine (`gateway/llm/forecast.py`)
+- [x] Phase 2 — `time_to_threshold` LLM tool
+- [x] Phase 5 — backtest harness (`gateway/llm/backtest.py`) + `forecast_accuracy` LLM tool (measured MAE/RMSE)
+- [x] Phase 4 — dashboard forecast overlay: dashed projection past a "now" marker, ±1 RMSE band, threshold badges (`/api/forecast` + `/api/threshold`); shipped v0.5.0, re-homed into the three-column layout v0.5.1
+- [ ] Phase 3 — baseline / drift detection (not started)
+
+---
+
+## Roadmap — next up
+
+1. **Stage 4 Phase 3 — baseline & drift detection** (main feature work)
+   - Backend: derive a per-metric "normal" baseline/envelope from stored
+     history; compute a drift score (current session vs. baseline); add a
+     `detect_drift` LLM tool and an `/api/baseline` (or `/api/drift`)
+     endpoint; cover with unit tests + a backtest entry. Reuse the
+     session/least-squares plumbing already in `llm/forecast.py`.
+   - Frontend: a drift badge/indicator (operational / drifting / fault) and
+     optionally a baseline band layered onto the existing charts.
+   - This is the one piece that lets the project claim "Stage 4 complete".
+2. **Doc consistency** — the README `## Status` table still lists Phase 4
+   (frontend overlay) as pending; it shipped in v0.5.0. Mark it done and
+   fold the Stage 4 narrative into a `docs/STAGE4.md` alongside `STAGE3.md`.
+3. **Forecast UX hint** — when `/api/forecast` returns `ok=false` (current
+   session shorter than 2× horizon), show a small "forecast warming up —
+   needs ~30 min of continuous session" note in the chart instead of a
+   blank space, so the absent dashed line doesn't read as broken.
+4. **Carry-overs / tech debt**
+   - Stage 2 leftover: `sensor_node` mesh colour overlay needs a Blender
+     re-export of `pc_case.glb` with named meshes.
+   - Vite build warns the main chunk is >500 kB — code-split (lazy-load the
+     Three.js viewer) or set `manualChunks`.
+   - Tag `v0.5.1` to match the existing `v0.2.x`/`v0.3.x` tag convention.
+
 ---
 
 ## IDE Setup Reminder
