@@ -1,11 +1,16 @@
 import { AreaChart, Area, CartesianGrid, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useSensorData } from '../../hooks/useSensorData'
 import { useForecast } from '../../hooks/useForecast'
+import { useThreshold } from '../../hooks/useThreshold'
 import { combineHistoryAndForecast } from '../../lib/forecastOverlay'
+import ThresholdBadge from './ThresholdBadge'
+
+const TEMP_CEILING_C = 35
 
 export default function TemperatureChart() {
   const { data } = useSensorData('temperature_c')
   const { forecast } = useForecast('temperature', '1h', '15m')
+  const { threshold } = useThreshold('temperature', TEMP_CEILING_C, 'above')
   const latest = data.length ? data[data.length - 1].value : null
   const rows = combineHistoryAndForecast(data, forecast, 'temperature', '15m')
   return (
@@ -74,6 +79,7 @@ export default function TemperatureChart() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+      <ThresholdBadge result={threshold} unit="°C" decimals={1} />
     </div>
   )
 }

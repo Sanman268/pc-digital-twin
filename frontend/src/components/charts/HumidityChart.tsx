@@ -1,11 +1,16 @@
 import { AreaChart, Area, CartesianGrid, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useSensorData } from '../../hooks/useSensorData'
 import { useForecast } from '../../hooks/useForecast'
+import { useThreshold } from '../../hooks/useThreshold'
 import { combineHistoryAndForecast } from '../../lib/forecastOverlay'
+import ThresholdBadge from './ThresholdBadge'
+
+const HUMIDITY_CEILING_PCT = 75
 
 export default function HumidityChart() {
   const { data } = useSensorData('humidity_pct')
   const { forecast } = useForecast('humidity', '1h', '15m')
+  const { threshold } = useThreshold('humidity', HUMIDITY_CEILING_PCT, 'above')
   const latest = data.length ? data[data.length - 1].value : null
   const rows = combineHistoryAndForecast(data, forecast, 'humidity', '15m')
   return (
@@ -74,6 +79,7 @@ export default function HumidityChart() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+      <ThresholdBadge result={threshold} unit="%" decimals={0} />
     </div>
   )
 }
