@@ -112,3 +112,19 @@ def test_time_to_threshold_specific_enums():
         "threshold",
         "direction",
     }
+
+
+def test_forecast_accuracy_specific_enums():
+    """Explicit check for the Phase 5 tool, on top of the generic checks."""
+    schemas = _tool_by_name()
+    assert "forecast_accuracy" in schemas
+    props = schemas["forecast_accuracy"]["function"]["parameters"]["properties"]
+    assert props["metric"]["enum"] == [
+        "temperature",
+        "humidity",
+        "pressure",
+        "vibration",
+        "light",
+    ]
+    assert props["history_window"]["enum"] == ["1h", "6h", "24h", "7d"]
+    assert props["horizon"]["enum"] == ["15m", "1h", "6h"]

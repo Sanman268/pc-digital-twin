@@ -105,6 +105,32 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "forecast_accuracy",
+            "description": (
+                "Report the measured forecast error (MAE and RMSE) of the "
+                "linear forecaster over recent history, by backtesting the "
+                "same forecast() used in production. Walks anchors through "
+                "every session in the history window, predicts horizon "
+                "ahead from each anchor, and compares to the actual value. "
+                "Returns aggregate MAE/RMSE in the metric's native units "
+                "plus the number of anchors evaluated. Use this to answer "
+                "'how trustworthy is the forecast?' or 'what's the typical "
+                "error?' — never invent a confidence interval, quote this."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "metric": {"type": "string", "enum": METRIC_ENUM},
+                    "history_window": {"type": "string", "enum": WINDOW_ENUM},
+                    "horizon": {"type": "string", "enum": HORIZON_ENUM},
+                },
+                "required": ["metric", "history_window", "horizon"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "forecast_window",
             "description": (
                 "Project a sensor forward over a short horizon using a linear "
