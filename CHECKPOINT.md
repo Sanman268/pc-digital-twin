@@ -1,8 +1,8 @@
 # PC Digital Twin — Checkpoint
 
-**Last updated:** 2026-05-19
-**Phase:** Stage 2 — Live BLE → Influx → 3D dashboard running on stock SiLabs demo firmware
-**Version:** 0.1.0 — first end-to-end light (see `docs/results/v0.1.0-dashboard.png`)
+**Last updated:** 2026-05-26
+**Phase:** Stage 4 — predictive dashboard: linear-fit forecasting + chat forecast tools on a three-column desktop layout
+**Version:** 0.5.1 — three-column dashboard refactor (see `docs/results/v0.5.1-dashboard.png`)
 
 ---
 
@@ -207,3 +207,37 @@
   viewer migrated from its own polling loop to the shared
   `useLatest` hook. Frontend-only — no backend changes. Screenshot:
   `docs/results/v0.2.1-dashboard.png`.
+- **2026-05-19 (v0.2.2)** — Viewer interaction: click-to-select a mesh,
+  hide/show, and a right-click context menu in `PCTwinViewer`.
+- **2026-05-19 (v0.2.3)** — Asset properties panel: per-mesh CMDB-style
+  metadata (`assetProperties.ts`) surfaced in a side panel on selection.
+- **2026-05-19 (v0.2.4)** — Dashboard rework: hero 3D viewer with the
+  sensor charts moved into a marker-triggered popup over the canvas.
+- **2026-05-21 (v0.3.0)** — Chore: drop committed `tsc` emit artifacts,
+  bump version.
+- **2026-05-21 (v0.3.1)** — Align the in-app version header with the
+  package version.
+- **2026-05-21 (v0.3.2)** — Stage 3 done. Chat agent answers in English
+  with robust timezone handling; planner/narrator passes over the
+  `query_window` / `find_anomalies` / `compare_windows` tools. See
+  `docs/STAGE3.md`. Screenshot: `docs/results/v0.3.2-dashboard.png`.
+- **2026-05-26 (v0.4.0)** — Stage 4 forecasting tools (chat agent only):
+  added `forecast_window`, `time_to_threshold`, and `forecast_accuracy`
+  on top of a current-session linear fit (`llm/forecast.py`). A forecast
+  is refused (`ok=false`) unless the current contiguous session is at
+  least 2× the requested horizon.
+- **2026-05-26 (v0.5.0)** — Stage 4 predictive UI. Surfaced the forecast
+  in the charts: dashed projection line past a "now" marker, ±1 RMSE
+  shaded band, threshold badges, and a `/api/forecast` + `/api/threshold`
+  endpoint pair. Default chart horizon set to 15m.
+- **2026-05-26 (v0.5.1)** — Three-column desktop dashboard refactor.
+  Replaced the floating overlay panels with a docked layout: Diagnostics
+  Chat in a left sidebar (340–380px), the 3D PC case viewer as the center
+  canvas, and Sensor Live Readings in a right sidebar (420–500px) stacking
+  Temperature, Humidity, and Vibration RMS. Removed the CO₂ chart card
+  (the Thunderboard stock firmware does not report CO₂) in favour of a
+  short footer note, and deleted the floating Charts/Chat toggle plus the
+  chart/chat popups. Columns stack vertically below 1100px for
+  tablet/mobile. Forecast overlay, RMSE band, now marker, threshold
+  badges, and chat forecast tools are unchanged; no backend or
+  forecast-math changes. Screenshot: `docs/results/v0.5.1-dashboard.png`.
