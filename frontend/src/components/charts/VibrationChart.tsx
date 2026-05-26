@@ -32,8 +32,8 @@ export default function VibrationChart() {
             <XAxis dataKey="time" hide />
             <YAxis domain={['auto', 'auto']} width={48} tickFormatter={(v) => v.toFixed(0)} />
             <Tooltip
-              formatter={(v: number, name: string) => {
-                if (v == null) return ['—', name]
+              formatter={(v: unknown, name: string) => {
+                if (typeof v !== 'number') return ['', ''] as [string, string]
                 if (name === 'forecast') return [`${v.toFixed(1)} mg`, 'Forecast']
                 return [`${v.toFixed(1)} mg`, 'Vibration']
               }}
@@ -47,6 +47,7 @@ export default function VibrationChart() {
               fillOpacity={0.12}
               isAnimationActive={false}
               activeDot={false}
+              tooltipType="none"
               name="±1 RMSE"
               connectNulls={false}
             />

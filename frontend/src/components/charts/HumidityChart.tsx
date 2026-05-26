@@ -32,8 +32,8 @@ export default function HumidityChart() {
             <XAxis dataKey="time" hide />
             <YAxis domain={[0, 100]} width={36} tickFormatter={(v) => v.toFixed(0)} />
             <Tooltip
-              formatter={(v: number, name: string) => {
-                if (v == null) return ['—', name]
+              formatter={(v: unknown, name: string) => {
+                if (typeof v !== 'number') return ['', ''] as [string, string]
                 if (name === 'forecast') return [`${v.toFixed(2)} %`, 'Forecast']
                 return [`${v.toFixed(2)} %`, 'Humidity']
               }}
@@ -47,6 +47,7 @@ export default function HumidityChart() {
               fillOpacity={0.12}
               isAnimationActive={false}
               activeDot={false}
+              tooltipType="none"
               name="±1 RMSE"
               connectNulls={false}
             />

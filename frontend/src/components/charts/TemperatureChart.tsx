@@ -32,8 +32,8 @@ export default function TemperatureChart() {
             <XAxis dataKey="time" hide />
             <YAxis domain={['auto', 'auto']} width={36} tickFormatter={(v) => v.toFixed(1)} />
             <Tooltip
-              formatter={(v: number, name: string) => {
-                if (v == null) return ['—', name]
+              formatter={(v: unknown, name: string) => {
+                if (typeof v !== 'number') return ['', ''] as [string, string]
                 if (name === 'forecast') return [`${v.toFixed(2)} °C`, 'Forecast']
                 return [`${v.toFixed(2)} °C`, 'Temperature']
               }}
@@ -47,6 +47,7 @@ export default function TemperatureChart() {
               fillOpacity={0.12}
               isAnimationActive={false}
               activeDot={false}
+              tooltipType="none"
               name="±1 RMSE"
               connectNulls={false}
             />
