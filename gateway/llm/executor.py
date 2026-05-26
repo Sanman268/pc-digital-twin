@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, ValidationError
 from config import get_settings
 from influx.writer import query_api
 from llm.forecast import forecast as run_forecast
+from llm.forecast import time_to_cross as run_time_to_cross
 
 log = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ Window = Literal["1h", "6h", "24h", "7d"]
 Horizon = Literal["15m", "1h", "6h"]
 Aggregation = Literal["min", "max", "mean", "std"]
 CompareAggregation = Literal["mean", "max"]
+Direction = Literal["above", "below"]
 
 HORIZON_TO_TIMEDELTA: dict[str, timedelta] = {
     "15m": timedelta(minutes=15),
@@ -80,6 +82,13 @@ class ForecastWindowParams(BaseModel):
     metric: Metric
     history_window: Window
     horizon: Horizon
+
+
+class TimeToThresholdParams(BaseModel):
+    metric: Metric
+    history_window: Window
+    threshold: float
+    direction: Direction
 
 
 def _flux_aggregate(field: str, window: str, agg: str, bucket: str) -> str:
@@ -261,11 +270,62 @@ def execute_forecast_window(p: ForecastWindowParams) -> dict[str, Any]:
     return base
 
 
+def execute_time_to_threshold(p: TimeToThresholdParams) -> dict[str, Any]:
+    """Pull history, fit a line on the current session, project until crossing.
+
+    Like ``execute_forecast_window``, the math is delegated to the pure
+    ``time_to_cross`` helper; this wrapper handles I/O and shapes the result
+    for the LLM (local-time ISO timestamp, rounded numbers).
+    """
+    field = METRIC_TO_FIELD[p.metric]
+    raw = _run_raw(field, p.history_window)
+    result = run_time_to_cross(raw, threshold=p.threshold, direction=p.direction)
+
+    base: dict[str, Any] = {
+        "metric": p.metric,
+        "field": field,
+        "history_window": p.history_window,
+        "threshold": p.threshold,
+        "direction": p.direction,
+        "unit": METRIC_TO_UNIT[p.metric],
+    }
+    if not result.ok:
+        base["ok"] = False
+        base["reason"] = result.reason
+        if result.current_value is not None:
+            base["current_value"] = round(result.current_value, 3)
+        if result.slope_per_hour is not None:
+            base["slope_per_hour"] = round(result.slope_per_hour, 4)
+        return base
+
+    assert result.current_value is not None
+    assert result.slope_per_hour is not None
+    assert result.eta_minutes is not None
+    assert result.crossing_time is not None
+    assert result.fit_start is not None and result.fit_end is not None
+
+    base.update(
+        {
+            "ok": True,
+            "already_crossed": result.already_crossed,
+            "current_value": round(result.current_value, 3),
+            "slope_per_hour": round(result.slope_per_hour, 4),
+            "eta_minutes": round(result.eta_minutes, 1),
+            "crossing_time": _to_local_iso(result.crossing_time),
+            "fit_start": _to_local_iso(result.fit_start),
+            "fit_end": _to_local_iso(result.fit_end),
+            "fit_point_count": result.fit_point_count,
+        }
+    )
+    return base
+
+
 TOOL_DISPATCH: dict[str, tuple[type[BaseModel], Any]] = {
     "query_window": (QueryWindowParams, execute_query_window),
     "find_anomalies": (FindAnomaliesParams, execute_find_anomalies),
     "compare_windows": (CompareWindowsParams, execute_compare_windows),
     "forecast_window": (ForecastWindowParams, execute_forecast_window),
+    "time_to_threshold": (TimeToThresholdParams, execute_time_to_threshold),
 }
 
 

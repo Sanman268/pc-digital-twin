@@ -1,6 +1,7 @@
 METRIC_ENUM = ["temperature", "humidity", "pressure", "vibration", "light"]
 WINDOW_ENUM = ["1h", "6h", "24h", "7d"]
 HORIZON_ENUM = ["15m", "1h", "6h"]
+DIRECTION_ENUM = ["above", "below"]
 
 TOOLS = [
     {
@@ -66,6 +67,38 @@ TOOLS = [
                     "aggregation": {"type": "string", "enum": ["mean", "max"]},
                 },
                 "required": ["metric", "window_a", "window_b", "aggregation"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "time_to_threshold",
+            "description": (
+                "Estimate how long until a sensor's current-session trend "
+                "crosses a threshold (e.g. 'when will temperature reach 35 °C?'). "
+                "Uses a linear fit on the active session only and returns "
+                "eta_minutes plus a projected crossing_time. If the trend is "
+                "flat or heading the other way, returns ok=false with a reason. "
+                "If the value is already on the requested side of the "
+                "threshold, returns ok=true with already_crossed=true and "
+                "eta_minutes=0."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "metric": {"type": "string", "enum": METRIC_ENUM},
+                    "history_window": {"type": "string", "enum": WINDOW_ENUM},
+                    "threshold": {
+                        "type": "number",
+                        "description": (
+                            "Target value in the metric's own units (e.g. 35.0 "
+                            "for temperature in °C)."
+                        ),
+                    },
+                    "direction": {"type": "string", "enum": DIRECTION_ENUM},
+                },
+                "required": ["metric", "history_window", "threshold", "direction"],
             },
         },
     },

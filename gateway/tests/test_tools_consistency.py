@@ -87,3 +87,28 @@ def test_forecast_window_specific_enums():
     ]
     assert props["history_window"]["enum"] == ["1h", "6h", "24h", "7d"]
     assert props["horizon"]["enum"] == ["15m", "1h", "6h"]
+
+
+def test_time_to_threshold_specific_enums():
+    """Explicit check for the Phase 2 tool, on top of the generic checks."""
+    schemas = _tool_by_name()
+    assert "time_to_threshold" in schemas
+    params = schemas["time_to_threshold"]["function"]["parameters"]
+    props = params["properties"]
+    assert props["metric"]["enum"] == [
+        "temperature",
+        "humidity",
+        "pressure",
+        "vibration",
+        "light",
+    ]
+    assert props["history_window"]["enum"] == ["1h", "6h", "24h", "7d"]
+    assert props["direction"]["enum"] == ["above", "below"]
+    # threshold is a number, not an enum — but must still be required.
+    assert props["threshold"]["type"] == "number"
+    assert set(params["required"]) == {
+        "metric",
+        "history_window",
+        "threshold",
+        "direction",
+    }
