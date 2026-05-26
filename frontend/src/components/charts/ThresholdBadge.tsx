@@ -6,6 +6,12 @@ interface Props {
   decimals?: number
 }
 
+// Warm orange for "approaching upper limit", cool blue for "approaching
+// lower limit" — communicates direction at a glance without needing to
+// read the arrow character.
+const ABOVE_COLOR = '#ff8c4a'
+const BELOW_COLOR = '#4aa3ff'
+
 function formatEta(minutes: number): string {
   if (minutes < 1) return '< 1m'
   if (minutes < 60) return `${Math.round(minutes)}m`
@@ -22,26 +28,38 @@ function formatCrossingTime(iso: string): string {
 }
 
 /**
- * "Predicted to reach X at ~HH:MM (in 2h 15m)" badge. Renders nothing
- * when the result is missing or the forecaster refused (ok=false /
- * trend heading the wrong way / session too short) so the chart card
- * stays clean rather than showing a noisy placeholder.
+ * "Predicted to reach X at ~HH:MM (in 2h 15m)" badge that sits under
+ * the chart card. Renders nothing when the forecaster refused
+ * (ok=false / flat trend / session too short / pointing the wrong
+ * way) so the card stays clean rather than displaying placeholder
+ * text. The arrow + label get a directional colour so the user spots
+ * the warning before reading the number.
  */
 export default function ThresholdBadge({ result, unit, decimals = 1 }: Props) {
-  if (!result) return null
+  if (!result || !result.ok) return null
 
-  const arrow = result.direction === 'above' ? '↑' : '↓'
+  const isAbove = result.direction === 'above'
+  const arrow = isAbove ? '↑' : '↓'
+  const arrowColor = isAbove ? ABOVE_COLOR : BELOW_COLOR
   const thresholdText = `${result.threshold.toFixed(decimals)} ${unit}`
 
-  if (!result.ok) {
-    return null
+  const container: React.CSSProperties = {
+    fontSize: 12,
+    padding: '5px 10px',
+    borderTop: '1px solid var(--border, rgba(255,255,255,0.08))',
+    color: 'var(--text-secondary, #ccc)',
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: 6,
+    fontFamily: 'var(--font-mono, monospace)',
   }
 
   if (result.already_crossed) {
-    const side = result.direction === 'above' ? 'above' : 'below'
+    const side = isAbove ? 'above' : 'below'
     return (
-      <div className="dim" style={{ fontSize: 11, padding: '4px 8px' }}>
-        {arrow} Currently {side} {thresholdText}
+      <div style={container}>
+        <span style={{ color: arrowColor, fontWeight: 600 }}>{arrow}</span>
+        <span>Currently {side} {thresholdText}</span>
       </div>
     )
   }
@@ -49,9 +67,13 @@ export default function ThresholdBadge({ result, unit, decimals = 1 }: Props) {
   if (result.crossing_time == null || result.eta_minutes == null) return null
 
   return (
-    <div className="dim mono" style={{ fontSize: 11, padding: '4px 8px' }}>
-      {arrow} Predicted to reach {thresholdText} at ~{formatCrossingTime(result.crossing_time)}
-      {' '}<span style={{ opacity: 0.7 }}>(in {formatEta(result.eta_minutes)})</span>
+    <div style={container}>
+      <span style={{ color: arrowColor, fontWeight: 600 }}>{arrow}</span>
+      <span>
+        Predicted to reach <span style={{ color: 'var(--text, #fff)' }}>{thresholdText}</span> at
+        {' ~'}{formatCrossingTime(result.crossing_time)}
+      </span>
+      <span style={{ opacity: 0.65 }}>(in {formatEta(result.eta_minutes)})</span>
     </div>
   )
 }

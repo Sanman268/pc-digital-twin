@@ -2,16 +2,22 @@ import { AreaChart, Area, CartesianGrid, Line, XAxis, YAxis, Tooltip, Responsive
 import { useSensorData } from '../../hooks/useSensorData'
 import { useForecast } from '../../hooks/useForecast'
 import { combineHistoryAndForecast } from '../../lib/forecastOverlay'
+import ChartLegend from './ChartLegend'
+
+const FORECAST_HORIZON = '1h'
 
 export default function VibrationChart() {
   const { data } = useSensorData('vibration_rms')
-  const { forecast } = useForecast('vibration', '1h', '15m')
+  const { forecast } = useForecast('vibration', '1h', FORECAST_HORIZON)
   const latest = data.length ? data[data.length - 1].value : null
-  const rows = combineHistoryAndForecast(data, forecast, 'vibration', '15m')
+  const rows = combineHistoryAndForecast(data, forecast, 'vibration', FORECAST_HORIZON)
   return (
     <div className="card" style={{ height: 200, display: 'flex', flexDirection: 'column' }}>
       <div className="card-header">
-        <span className="card-title">Vibration RMS</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+          <span className="card-title">Vibration RMS</span>
+          <ChartLegend color="var(--chart-3)" />
+        </div>
         <span>
           <span className="mono" style={{ fontSize: 16, fontWeight: 600 }}>
             {latest == null ? '—' : latest.toFixed(0)}

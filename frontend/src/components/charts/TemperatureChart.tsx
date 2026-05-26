@@ -3,20 +3,25 @@ import { useSensorData } from '../../hooks/useSensorData'
 import { useForecast } from '../../hooks/useForecast'
 import { useThreshold } from '../../hooks/useThreshold'
 import { combineHistoryAndForecast } from '../../lib/forecastOverlay'
+import ChartLegend from './ChartLegend'
 import ThresholdBadge from './ThresholdBadge'
 
 const TEMP_CEILING_C = 35
+const FORECAST_HORIZON = '1h'
 
 export default function TemperatureChart() {
   const { data } = useSensorData('temperature_c')
-  const { forecast } = useForecast('temperature', '1h', '15m')
+  const { forecast } = useForecast('temperature', '1h', FORECAST_HORIZON)
   const { threshold } = useThreshold('temperature', TEMP_CEILING_C, 'above')
   const latest = data.length ? data[data.length - 1].value : null
-  const rows = combineHistoryAndForecast(data, forecast, 'temperature', '15m')
+  const rows = combineHistoryAndForecast(data, forecast, 'temperature', FORECAST_HORIZON)
   return (
-    <div className="card" style={{ height: 200, display: 'flex', flexDirection: 'column' }}>
+    <div className="card" style={{ height: 220, display: 'flex', flexDirection: 'column' }}>
       <div className="card-header">
-        <span className="card-title">Temperature</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+          <span className="card-title">Temperature</span>
+          <ChartLegend color="var(--chart-1)" />
+        </div>
         <span>
           <span className="mono" style={{ fontSize: 16, fontWeight: 600 }}>
             {latest == null ? '—' : latest.toFixed(2)}
