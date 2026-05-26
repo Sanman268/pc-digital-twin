@@ -1,8 +1,8 @@
-import { AreaChart, Area, CartesianGrid, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, CartesianGrid, Line, ReferenceLine, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useSensorData } from '../../hooks/useSensorData'
 import { useForecast } from '../../hooks/useForecast'
 import { useThreshold } from '../../hooks/useThreshold'
-import { combineHistoryAndForecast } from '../../lib/forecastOverlay'
+import { combineHistoryAndForecast, nowBoundaryMs } from '../../lib/forecastOverlay'
 import ChartLegend from './ChartLegend'
 import ThresholdBadge from './ThresholdBadge'
 
@@ -15,6 +15,7 @@ export default function TemperatureChart() {
   const { threshold } = useThreshold('temperature', TEMP_CEILING_C, 'above')
   const latest = data.length ? data[data.length - 1].value : null
   const rows = combineHistoryAndForecast(data, forecast, 'temperature', FORECAST_HORIZON)
+  const nowMs = nowBoundaryMs(data)
   return (
     <div className="card" style={{ height: 220, display: 'flex', flexDirection: 'column' }}>
       <div className="card-header">
@@ -39,8 +40,22 @@ export default function TemperatureChart() {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="time" hide />
+            <XAxis
+              dataKey="t"
+              type="number"
+              scale="time"
+              domain={['dataMin', 'dataMax']}
+              hide
+            />
             <YAxis domain={['auto', 'auto']} width={36} tickFormatter={(v) => v.toFixed(1)} />
+            {nowMs != null && (
+              <ReferenceLine
+                x={nowMs}
+                stroke="var(--text-dim, rgba(255,255,255,0.35))"
+                strokeDasharray="2 4"
+                strokeWidth={1}
+              />
+            )}
             <Tooltip
               formatter={(v: unknown, name: string) => {
                 if (typeof v !== 'number') return ['', ''] as [string, string]
@@ -54,7 +69,7 @@ export default function TemperatureChart() {
               dataKey={(d: { band_low: number | null; band_high: number | null }) => [d.band_low, d.band_high]}
               stroke="none"
               fill="var(--chart-1)"
-              fillOpacity={0.12}
+              fillOpacity={0.10}
               isAnimationActive={false}
               activeDot={false}
               tooltipType="none"
@@ -75,8 +90,8 @@ export default function TemperatureChart() {
               type="monotone"
               dataKey="forecast"
               stroke="var(--chart-1)"
-              strokeWidth={1.6}
-              strokeDasharray="6 4"
+              strokeWidth={2.2}
+              strokeDasharray="8 5"
               isAnimationActive={false}
               dot={false}
               connectNulls={false}
