@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from config import get_settings
 from influx.writer import query_api
+from llm.backtest import backtest as run_backtest
 from llm.forecast import forecast as run_forecast
 from llm.forecast import time_to_cross as run_time_to_cross
 
@@ -89,6 +90,12 @@ class TimeToThresholdParams(BaseModel):
     history_window: Window
     threshold: float
     direction: Direction
+
+
+class ForecastAccuracyParams(BaseModel):
+    metric: Metric
+    history_window: Window
+    horizon: Horizon
 
 
 def _flux_aggregate(field: str, window: str, agg: str, bucket: str) -> str:
@@ -320,12 +327,52 @@ def execute_time_to_threshold(p: TimeToThresholdParams) -> dict[str, Any]:
     return base
 
 
+def execute_forecast_accuracy(p: ForecastAccuracyParams) -> dict[str, Any]:
+    """Backtest the linear forecaster over recent history.
+
+    Walks anchors through every session in the history window, runs the
+    same ``forecast()`` used in production at each anchor, and compares
+    the prediction to the actual observed value at ``anchor + horizon``.
+    Returns aggregate MAE and RMSE in the metric's native units so the
+    chat agent can report measured forecast error honestly rather than
+    inventing confidence.
+    """
+    field = METRIC_TO_FIELD[p.metric]
+    raw = _run_raw(field, p.history_window)
+    horizon_td = HORIZON_TO_TIMEDELTA[p.horizon]
+    result = run_backtest(raw, horizon=horizon_td)
+
+    base: dict[str, Any] = {
+        "metric": p.metric,
+        "field": field,
+        "history_window": p.history_window,
+        "horizon": p.horizon,
+        "unit": METRIC_TO_UNIT[p.metric],
+    }
+    if not result.ok:
+        base["ok"] = False
+        base["reason"] = result.reason
+        return base
+
+    assert result.mae is not None and result.rmse is not None
+    base.update(
+        {
+            "ok": True,
+            "n_anchors": result.n,
+            "mae": round(result.mae, 3),
+            "rmse": round(result.rmse, 3),
+        }
+    )
+    return base
+
+
 TOOL_DISPATCH: dict[str, tuple[type[BaseModel], Any]] = {
     "query_window": (QueryWindowParams, execute_query_window),
     "find_anomalies": (FindAnomaliesParams, execute_find_anomalies),
     "compare_windows": (CompareWindowsParams, execute_compare_windows),
     "forecast_window": (ForecastWindowParams, execute_forecast_window),
     "time_to_threshold": (TimeToThresholdParams, execute_time_to_threshold),
+    "forecast_accuracy": (ForecastAccuracyParams, execute_forecast_accuracy),
 }
 
 
