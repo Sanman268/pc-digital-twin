@@ -1,13 +1,24 @@
-import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, CartesianGrid, Line, ReferenceLine, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useSensorData } from '../../hooks/useSensorData'
+import { useForecast } from '../../hooks/useForecast'
+import { combineHistoryAndForecast, nowBoundaryMs } from '../../lib/forecastOverlay'
+import ChartLegend from './ChartLegend'
+
+const FORECAST_HORIZON = '15m'
 
 export default function VibrationChart() {
   const { data } = useSensorData('vibration_rms')
+  const { forecast } = useForecast('vibration', '1h', FORECAST_HORIZON)
   const latest = data.length ? data[data.length - 1].value : null
+  const rows = combineHistoryAndForecast(data, forecast, 'vibration', FORECAST_HORIZON)
+  const nowMs = nowBoundaryMs(data)
   return (
     <div className="card" style={{ height: 200, display: 'flex', flexDirection: 'column' }}>
       <div className="card-header">
-        <span className="card-title">Vibration RMS</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+          <span className="card-title">Vibration RMS</span>
+          <ChartLegend color="var(--chart-3)" />
+        </div>
         <span>
           <span className="mono" style={{ fontSize: 16, fontWeight: 600 }}>
             {latest == null ? '—' : latest.toFixed(0)}
@@ -17,7 +28,7 @@ export default function VibrationChart() {
       </div>
       <div style={{ flex: 1, marginLeft: -8 }}>
         <ResponsiveContainer>
-          <AreaChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+          <AreaChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="g-vib" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%"  stopColor="var(--chart-3)" stopOpacity={0.5} />
@@ -25,11 +36,41 @@ export default function VibrationChart() {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="time" hide />
+            <XAxis
+              dataKey="t"
+              type="number"
+              scale="time"
+              domain={['dataMin', 'dataMax']}
+              hide
+            />
             <YAxis domain={['auto', 'auto']} width={48} tickFormatter={(v) => v.toFixed(0)} />
+            {nowMs != null && (
+              <ReferenceLine
+                x={nowMs}
+                stroke="var(--text-dim, rgba(255,255,255,0.35))"
+                strokeDasharray="2 4"
+                strokeWidth={1}
+              />
+            )}
             <Tooltip
-              formatter={(v: number) => [`${v.toFixed(1)} mg`, 'Vibration']}
+              formatter={(v: unknown, name: string) => {
+                if (typeof v !== 'number') return ['', ''] as [string, string]
+                if (name === 'forecast') return [`${v.toFixed(1)} mg`, 'Forecast']
+                return [`${v.toFixed(1)} mg`, 'Vibration']
+              }}
               labelFormatter={(l) => new Date(l).toLocaleTimeString()}
+            />
+            <Area
+              type="monotone"
+              dataKey={(d: { band_low: number | null; band_high: number | null }) => [d.band_low, d.band_high]}
+              stroke="none"
+              fill="var(--chart-3)"
+              fillOpacity={0.10}
+              isAnimationActive={false}
+              activeDot={false}
+              tooltipType="none"
+              name="±1 RMSE"
+              connectNulls={false}
             />
             <Area
               type="monotone"
@@ -39,6 +80,17 @@ export default function VibrationChart() {
               fill="url(#g-vib)"
               isAnimationActive={false}
               dot={false}
+              connectNulls={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="forecast"
+              stroke="var(--chart-3)"
+              strokeWidth={2.2}
+              strokeDasharray="8 5"
+              isAnimationActive={false}
+              dot={false}
+              connectNulls={false}
             />
           </AreaChart>
         </ResponsiveContainer>

@@ -27,7 +27,7 @@ export default function Header() {
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
         <h1>PC Digital Twin</h1>
-        <span className="dim mono" style={{ fontSize: 12 }}>v0.4.0</span>
+        <span className="dim mono" style={{ fontSize: 12 }}>v0.5.0</span>
       </div>
 
       <div style={{ flex: 1 }} />

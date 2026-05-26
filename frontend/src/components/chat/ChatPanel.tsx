@@ -38,6 +38,9 @@ const SUGGESTIONS = [
   'Average temperature in the last hour?',
   'Any vibration anomalies in the last 6 hours?',
   'When was the temperature highest tonight?',
+  'Forecast temperature for the next hour',
+  'When will temperature reach 35°C?',
+  'How accurate is the temperature forecast?',
 ]
 
 const MAX_HISTORY = 10
@@ -113,7 +116,8 @@ export default function ChatPanel({ embedded = false }: { embedded?: boolean } =
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span className="card-title">Diagnostics Chat</span>
             <span className="dim" style={{ fontSize: 11 }}>
-              llama3.1 · tools: query_window, find_anomalies, compare_windows
+              llama3.1 · tools: query_window, find_anomalies, compare_windows,
+              forecast_window, time_to_threshold, forecast_accuracy
             </span>
           </div>
           {turns.length > 0 && (
