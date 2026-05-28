@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, ValidationError
 from config import get_settings
 from influx.writer import query_api
 from llm.backtest import backtest as run_backtest
+from llm.drift import detect_drift as run_detect_drift
 from llm.forecast import forecast as run_forecast
 from llm.forecast import time_to_cross as run_time_to_cross
 
@@ -96,6 +97,11 @@ class ForecastAccuracyParams(BaseModel):
     metric: Metric
     history_window: Window
     horizon: Horizon
+
+
+class DetectDriftParams(BaseModel):
+    metric: Metric
+    baseline_window: Window
 
 
 def _flux_aggregate(field: str, window: str, agg: str, bucket: str) -> str:
@@ -366,6 +372,80 @@ def execute_forecast_accuracy(p: ForecastAccuracyParams) -> dict[str, Any]:
     return base
 
 
+def execute_detect_drift(p: DetectDriftParams) -> dict[str, Any]:
+    """Score the current session against the baseline of prior sessions.
+
+    The drift logic itself is pure (``llm.drift.detect_drift``); this
+    wrapper handles I/O and shapes timestamps as local-no-tz strings for
+    the chat LLM, matching the convention used by the other tools.
+    """
+    field = METRIC_TO_FIELD[p.metric]
+    raw = _run_raw(field, p.baseline_window)
+    result = run_detect_drift(raw)
+
+    base: dict[str, Any] = {
+        "metric": p.metric,
+        "field": field,
+        "baseline_window": p.baseline_window,
+        "unit": METRIC_TO_UNIT[p.metric],
+    }
+    if not result.ok:
+        base["ok"] = False
+        base["reason"] = result.reason
+        if result.baseline_session_count is not None:
+            base["baseline_session_count"] = result.baseline_session_count
+        if result.baseline_value_n is not None:
+            base["baseline_value_n"] = result.baseline_value_n
+        return base
+
+    assert result.status is not None
+    assert result.drift_score is not None
+    assert result.z_value is not None
+    assert result.current_value is not None
+    assert result.baseline_value_mean is not None
+    assert result.baseline_value_stddev is not None
+    assert result.baseline_value_n is not None
+    assert result.baseline_session_count is not None
+    assert result.current_session_start is not None
+    assert result.current_session_end is not None
+
+    drift_score_out: Any = (
+        round(result.drift_score, 2)
+        if math.isfinite(result.drift_score)
+        else "inf"
+    )
+    z_value_out: Any = (
+        round(result.z_value, 2) if math.isfinite(result.z_value) else "inf"
+    )
+
+    out: dict[str, Any] = {
+        **base,
+        "ok": True,
+        "status": result.status,
+        "drift_score": drift_score_out,
+        "z_value": z_value_out,
+        "current_value": round(result.current_value, 3),
+        "baseline_value_mean": round(result.baseline_value_mean, 3),
+        "baseline_value_stddev": round(result.baseline_value_stddev, 3),
+        "baseline_value_n": result.baseline_value_n,
+        "baseline_session_count": result.baseline_session_count,
+        "current_session_start": _to_local_iso(result.current_session_start),
+        "current_session_end": _to_local_iso(result.current_session_end),
+        "current_fit_point_count": result.current_fit_point_count,
+    }
+    if result.z_slope is not None:
+        out["z_slope"] = (
+            round(result.z_slope, 2) if math.isfinite(result.z_slope) else "inf"
+        )
+    if result.current_slope_per_hour is not None:
+        out["current_slope_per_hour"] = round(result.current_slope_per_hour, 4)
+    if result.baseline_slope_mean is not None:
+        out["baseline_slope_mean"] = round(result.baseline_slope_mean, 4)
+    if result.baseline_slope_stddev is not None:
+        out["baseline_slope_stddev"] = round(result.baseline_slope_stddev, 4)
+    return out
+
+
 TOOL_DISPATCH: dict[str, tuple[type[BaseModel], Any]] = {
     "query_window": (QueryWindowParams, execute_query_window),
     "find_anomalies": (FindAnomaliesParams, execute_find_anomalies),
@@ -373,6 +453,7 @@ TOOL_DISPATCH: dict[str, tuple[type[BaseModel], Any]] = {
     "forecast_window": (ForecastWindowParams, execute_forecast_window),
     "time_to_threshold": (TimeToThresholdParams, execute_time_to_threshold),
     "forecast_accuracy": (ForecastAccuracyParams, execute_forecast_accuracy),
+    "detect_drift": (DetectDriftParams, execute_detect_drift),
 }
 
 

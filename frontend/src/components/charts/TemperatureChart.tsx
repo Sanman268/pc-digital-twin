@@ -2,9 +2,11 @@ import { AreaChart, Area, CartesianGrid, Line, ReferenceLine, XAxis, YAxis, Tool
 import { useSensorData } from '../../hooks/useSensorData'
 import { useForecast } from '../../hooks/useForecast'
 import { useThreshold } from '../../hooks/useThreshold'
+import { useDrift } from '../../hooks/useDrift'
 import { combineHistoryAndForecast, nowBoundaryMs } from '../../lib/forecastOverlay'
 import ChartLegend from './ChartLegend'
 import ThresholdBadge from './ThresholdBadge'
+import DriftBadge from './DriftBadge'
 
 const TEMP_CEILING_C = 35
 // 15m horizon needs >= 30min of in-session history, which almost
@@ -18,6 +20,7 @@ export default function TemperatureChart() {
   const { data } = useSensorData('temperature_c')
   const { forecast } = useForecast('temperature', '1h', FORECAST_HORIZON)
   const { threshold } = useThreshold('temperature', TEMP_CEILING_C, 'above')
+  const { drift } = useDrift('temperature')
   const latest = data.length ? data[data.length - 1].value : null
   const rows = combineHistoryAndForecast(data, forecast, 'temperature', FORECAST_HORIZON)
   const nowMs = nowBoundaryMs(data)
@@ -105,6 +108,7 @@ export default function TemperatureChart() {
         </ResponsiveContainer>
       </div>
       <ThresholdBadge result={threshold} unit="°C" decimals={1} />
+      <DriftBadge result={drift} />
     </div>
   )
 }

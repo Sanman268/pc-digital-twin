@@ -5,7 +5,7 @@
 > and serves an interactive React + Three.js dashboard. An LLM diagnostic
 > agent analyzes recent telemetry on demand.
 
-![Dashboard at v0.5.1 — live temperature, humidity, vibration with a real bump spike captured at 19:05:33](docs/results/v0.5.1-dashboard.png)
+![Dashboard at v0.6.0 — three-column layout with the diagnostics chat on the left, the 3D PC case in the center, and live temperature / humidity / vibration on the right. Every chart card carries a forecast overlay plus a drift badge; the header rolls the worst-of-three drift status up to a single status pill.](docs/results/v0.6-dashboard.png)
 
 ## What it does
 
@@ -15,12 +15,16 @@ acceleration over Bluetooth Low Energy, writes them to a time-series
 database, and exposes a REST API. A web dashboard renders the data as live
 charts alongside a 3D model of the case. A conversational diagnostics
 agent (Ollama + `llama3.1:8b`) answers natural-language questions about
-the telemetry by calling Influx-backed tools and narrating the result —
-the chat panel lives inside the 3D viewer as a popup.
+the telemetry by calling Influx-backed tools and narrating the result.
+The dashboard is laid out in three columns — diagnostics chat on the
+left, 3D PC case in the center, live sensor charts on the right.
 
-The screenshot above is real telemetry from a Thunderboard sitting on the
-desk — note the steady self-heating curve, the anti-correlated humidity, and
-the **vibration spike at 19:05:33** captured when the board was bumped.
+The screenshot above is real telemetry from a Thunderboard sitting on
+the desk. Each chart card shows live values, a dashed short-horizon
+forecast past a "now" marker, and a **drift badge** comparing the
+active session against a baseline built from the last week of prior
+sessions; the header rolls the worst-of-three verdict up to a single
+status pill.
 
 ## What this demonstrates
 
@@ -44,18 +48,23 @@ the **vibration spike at 19:05:33** captured when the board was bumped.
   that occasionally emit tool calls as inline JSON, plus tz-aware
   timestamps so the chat and the charts agree. See
   [`docs/STAGE3.md`](docs/STAGE3.md).
-- **Forecasting tools (Stage 4, in progress)** — three additional LLM
-  tools built on a pure least-squares trend fit restricted to the
-  **current active session** (samples not separated by a powered-off
-  gap). `forecast_window` projects a metric forward over 15m / 1h / 6h;
-  `time_to_threshold` answers *"when will X cross Y?"*;
-  `forecast_accuracy` backtests the same forecaster over recent history
-  and reports measured **MAE / RMSE** in the metric's native units so
-  the agent can quote forecast error honestly instead of inventing
-  confidence. All three refuse rather than fabricate when the data is
-  too short or the trend points the wrong way. UI overlay is still to
-  come — see [Status](#status) and [`docs/STAGE3.md`](docs/STAGE3.md)
-  for Stage 4 direction.
+- **Forecasting tools (Stage 4)** — four LLM tools built on a pure
+  least-squares trend fit restricted to the **current active session**
+  (samples not separated by a powered-off gap). `forecast_window`
+  projects a metric forward over 15m / 1h / 6h; `time_to_threshold`
+  answers *"when will X cross Y?"*; `forecast_accuracy` backtests the
+  same forecaster over recent history and reports measured **MAE /
+  RMSE** in the metric's native units so the agent can quote forecast
+  error honestly instead of inventing confidence; `detect_drift`
+  compares the active session to a baseline built from prior sessions
+  in the history window and returns a *normal / drifting / fault*
+  verdict with the z-scores driving it. All four refuse rather than
+  fabricate when the data is too short or the trend points the wrong
+  way. The dashboard surfaces every forecaster: a dashed projection
+  line past a "now" marker with a ±1 RMSE band on each chart, a
+  threshold-crossing badge, a per-chart drift badge, and a header
+  status pill that rolls the worst-of-three drift verdict up to the
+  top of the page.
 - **Hardware adaptation** — the spec assumed a Thunderboard Sense 2 with
   custom firmware emitting JSON-over-notify; the actual hardware was a
   Sense v1 (BRD4160A) running stock SiLabs demo firmware. The gateway was
@@ -111,21 +120,24 @@ the **vibration spike at 19:05:33** captured when the board was bumped.
 | 1 — Data Collection | BLE → Gateway → InfluxDB | ✅ Done |
 | 2 — Visualization | Charts + 3D model | ✅ Done (named-mesh color overlay pending Blender re-export) |
 | 3 — Diagnostics | LLM chat agent + tools | ✅ Done at `v0.3.2` — see [`docs/STAGE3.md`](docs/STAGE3.md) |
-| 4 — Predictive layer | Intra-session forecasting + measured accuracy | 🟡 In progress — predictive core validated; Phases 3 (drift) and 4 (frontend overlay) pending |
+| 4 — Predictive layer | Intra-session forecasting + measured accuracy + drift detection | ✅ Done at `v0.6.0` |
 
 **Stage 4 — what's shipped**: Phase 0 (`gateway/verify_data.py` readiness
 tool — locks scope to intra-session per the live-data verdict), Phase 1
 (`forecast_window` LLM tool, pure linear-trend engine in
 `gateway/llm/forecast.py`), Phase 2 (`time_to_threshold` LLM tool),
-Phase 5 (backtest harness in `gateway/llm/backtest.py` + the
+Phase 3 (`detect_drift` LLM tool + `/api/drift` endpoint + per-chart
+drift badge + header status pill; pure baseline + dual-channel z-score
+in `gateway/llm/drift.py`), Phase 4 (dashboard forecast overlay:
+dashed projection line past a "now" marker, ±1 RMSE band, threshold
+badges, `/api/forecast` + `/api/threshold` endpoints), and Phase 5
+(backtest harness in `gateway/llm/backtest.py` + the
 `forecast_accuracy` LLM tool that surfaces measured MAE/RMSE on
-demand). The forecaster is now self-grading: the agent can answer
-*"how trustworthy is the forecast?"* with measured numbers rather than
-fabricated confidence. The dashboard does not yet overlay forecasts
-(Phase 4), and baseline / drift tracking has not started (Phase 3),
-so "Stage 4 fully complete" / "solid Level 3" is not claimed yet — but
-the **predictive core itself is validated** with the live backtest
-numbers below.
+demand). The forecaster is self-grading — the agent answers *"how
+trustworthy is the forecast?"* with measured numbers rather than
+fabricated confidence — and the drift detector is self-honest, refusing
+a verdict when there is no historical baseline yet rather than calling
+the first run "normal" by default.
 
 ### Measured live forecast accuracy
 

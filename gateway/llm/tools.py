@@ -131,6 +131,37 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "detect_drift",
+            "description": (
+                "Compare the current active session to a baseline built "
+                "from prior sessions in the history window. Returns a "
+                "status ('normal' / 'drifting' / 'fault'), a drift_score "
+                "(the larger of |z_value| and |z_slope|), and the "
+                "underlying z-scores alongside the baseline mean/stddev. "
+                "Use this to answer 'is the case behaving normally', "
+                "'is anything drifting today', or 'how does today compare "
+                "to the last week'. If there is no historical baseline "
+                "yet (only one session of data) or the baseline is too "
+                "sparse, returns ok=false with a reason — never invent a "
+                "verdict in that case. Quote the status and drift_score "
+                "from the result; do not fabricate. The slope channel is "
+                "automatically suppressed on noise-dominated baselines, "
+                "in which case z_slope is null and the verdict rests on "
+                "z_value alone."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "metric": {"type": "string", "enum": METRIC_ENUM},
+                    "baseline_window": {"type": "string", "enum": WINDOW_ENUM},
+                },
+                "required": ["metric", "baseline_window"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "forecast_window",
             "description": (
                 "Project a sensor forward over a short horizon using a linear "

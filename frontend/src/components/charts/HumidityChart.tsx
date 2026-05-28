@@ -2,9 +2,11 @@ import { AreaChart, Area, CartesianGrid, Line, ReferenceLine, XAxis, YAxis, Tool
 import { useSensorData } from '../../hooks/useSensorData'
 import { useForecast } from '../../hooks/useForecast'
 import { useThreshold } from '../../hooks/useThreshold'
+import { useDrift } from '../../hooks/useDrift'
 import { combineHistoryAndForecast, nowBoundaryMs } from '../../lib/forecastOverlay'
 import ChartLegend from './ChartLegend'
 import ThresholdBadge from './ThresholdBadge'
+import DriftBadge from './DriftBadge'
 
 const HUMIDITY_CEILING_PCT = 75
 const FORECAST_HORIZON = '15m'
@@ -13,6 +15,7 @@ export default function HumidityChart() {
   const { data } = useSensorData('humidity_pct')
   const { forecast } = useForecast('humidity', '1h', FORECAST_HORIZON)
   const { threshold } = useThreshold('humidity', HUMIDITY_CEILING_PCT, 'above')
+  const { drift } = useDrift('humidity')
   const latest = data.length ? data[data.length - 1].value : null
   const rows = combineHistoryAndForecast(data, forecast, 'humidity', FORECAST_HORIZON)
   const nowMs = nowBoundaryMs(data)
@@ -100,6 +103,7 @@ export default function HumidityChart() {
         </ResponsiveContainer>
       </div>
       <ThresholdBadge result={threshold} unit="%" decimals={0} />
+      <DriftBadge result={drift} />
     </div>
   )
 }

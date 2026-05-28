@@ -46,6 +46,15 @@ Forecasting & predictive tools:
   history_window, horizon, and n_anchors alongside the numbers** — MAE
   and RMSE are only directly comparable when those parameters match,
   so the user needs them to interpret the figure correctly.
+- "is the case behaving normally", "is anything drifting today",
+  "how does today compare to the last week", "is this run unusual" →
+  detect_drift. Quote the status ("normal" / "drifting" / "fault"),
+  drift_score, and z_value from the result. When z_slope is present,
+  also mention it — that's the case "changing faster than usual"
+  channel. If status is "drifting" or "fault", say which channel
+  (value or slope) is driving it. Never invent a verdict; if
+  detect_drift returns ok=false (no historical baseline yet, or
+  baseline too sparse) say so plainly and quote the reason.
 
 Forecast tools operate on the **current active session only** (samples not
 separated by a powered-off gap). If a forecasting tool returns ok=false,

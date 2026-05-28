@@ -12,9 +12,15 @@ from llm.executor import TOOL_DISPATCH
 from llm.prompts import SYSTEM_PROMPT
 
 
-# Forecasting tools added in Stage 4 phases 1 / 2 / 5. The prompt has to
-# at least name them so the planner has a hint about when to use them.
-FORECAST_TOOLS = ("forecast_window", "time_to_threshold", "forecast_accuracy")
+# Stage 4 predictive tools the planner needs to know exist by name. Phase
+# 3's detect_drift is added here so the prompt can't silently regress and
+# leave the agent without a drift verb.
+FORECAST_TOOLS = (
+    "forecast_window",
+    "time_to_threshold",
+    "forecast_accuracy",
+    "detect_drift",
+)
 
 
 def test_system_prompt_mentions_each_forecast_tool():
