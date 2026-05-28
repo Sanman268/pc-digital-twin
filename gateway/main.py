@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import get_settings
 from api import (
     chat,
+    routes_drift,
     routes_forecast,
     routes_sensor,
     routes_events,
@@ -57,6 +58,7 @@ def create_app() -> FastAPI:
     app.include_router(
         routes_threshold.router, prefix="/api/threshold", tags=["threshold"]
     )
+    app.include_router(routes_drift.router, prefix="/api/drift", tags=["drift"])
     return app
 
 

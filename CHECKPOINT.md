@@ -1,8 +1,10 @@
 # PC Digital Twin — Checkpoint
 
-**Last updated:** 2026-05-26
-**Phase:** Stage 4 — predictive dashboard: linear-fit forecasting + chat forecast tools on a three-column desktop layout
-**Version:** 0.5.1 — three-column dashboard refactor (see `docs/results/v0.5.1-dashboard.png`)
+**Last updated:** 2026-05-28
+**Phase:** Stage 4 — complete. Linear-fit forecasting + threshold ETA +
+backtested accuracy + baseline drift detection are all surfaced through
+the chat agent AND the three-column dashboard.
+**Version:** 0.6.0 — Stage 4 Phase 3: baseline & drift detection
 
 ---
 
@@ -157,6 +159,39 @@
 - [x] Tool results pull live data from InfluxDB with localised timestamps
 - [x] Narrator pass renders a natural-language answer in the Chat panel
 
+### Stage 4 — Predictive layer
+- [x] Phase 0 — `gateway/verify_data.py` readiness tool; locked scope to intra-session forecasting
+- [x] Phase 1 — `forecast_window` LLM tool + pure linear-trend engine (`gateway/llm/forecast.py`)
+- [x] Phase 2 — `time_to_threshold` LLM tool
+- [x] Phase 5 — backtest harness (`gateway/llm/backtest.py`) + `forecast_accuracy` LLM tool (measured MAE/RMSE)
+- [x] Phase 4 — dashboard forecast overlay: dashed projection past a "now" marker, ±1 RMSE band, threshold badges (`/api/forecast` + `/api/threshold`); shipped v0.5.0, re-homed into the three-column layout v0.5.1
+- [x] Phase 3 — baseline & drift detection: pure baseline + dual-channel z-score (`gateway/llm/drift.py`), `detect_drift` LLM tool, `/api/drift` endpoint, per-chart drift badge, header status pill rolling up the worst-of-three; shipped v0.6.0
+
+---
+
+## Roadmap — next up
+
+Stage 4 is now complete. The remaining items are quality-of-life polish,
+not blockers:
+
+1. **Forecast UX hint** — when `/api/forecast` returns `ok=false` (current
+   session shorter than 2× horizon), show a small "forecast warming up —
+   needs ~30 min of continuous session" note in the chart instead of a
+   blank space, so the absent dashed line doesn't read as broken. (The
+   drift badge already does this with "Baseline warming up"; mirror the
+   pattern for the forecast overlay.)
+2. **`docs/STAGE4.md`** — fold the Stage 4 narrative (Phases 0–5,
+   readiness verdict, measured-accuracy numbers, drift design notes)
+   into a single doc alongside `docs/STAGE3.md`, so the README can shrink
+   back to a project overview.
+3. **Carry-overs / tech debt**
+   - Stage 2 leftover: `sensor_node` mesh colour overlay needs a Blender
+     re-export of `pc_case.glb` with named meshes.
+   - Vite build warns the main chunk is >500 kB — code-split (lazy-load
+     the Three.js viewer) or set `manualChunks`.
+   - Tag `v0.5.1` and `v0.6.0` to match the existing `v0.2.x`/`v0.3.x`
+     tag convention.
+
 ---
 
 ## IDE Setup Reminder
@@ -241,3 +276,21 @@
   tablet/mobile. Forecast overlay, RMSE band, now marker, threshold
   badges, and chat forecast tools are unchanged; no backend or
   forecast-math changes. Screenshot: `docs/results/v0.5.1-dashboard.png`.
+- **2026-05-28 (v0.6.0)** — Stage 4 Phase 3 — baseline & drift detection,
+  closing out Stage 4. New pure module `gateway/llm/drift.py` builds a
+  baseline from the *historical* sessions in the lookback window (the
+  trailing session is the one being scored, not part of the baseline)
+  and computes two complementary z-scores: `z_value` (current smoothed
+  reading vs. baseline mean/stddev) and `z_slope` (current
+  least-squares slope vs. the distribution of per-session slopes in
+  the baseline). The larger absolute z drives the verdict — `normal`
+  below 1.5σ, `drifting` below 3σ, `fault` beyond. The slope channel
+  has a floor (`slope_stddev_floor=0.05`) so noise-dominated baselines
+  don't manufacture huge z-scores from sub-noise current-session
+  wobble; in that case z_slope is reported as `null` and the verdict
+  rests on z_value alone. Wired through a `detect_drift` LLM tool
+  (chat agent prompt updated), a `/api/drift` REST endpoint, a
+  per-chart `DriftBadge`, and a worst-of-three status pill in the
+  dashboard header. Tests: 13 new unit tests in
+  `gateway/tests/test_drift.py` plus a tools-consistency entry; full
+  gateway suite 73 passed. No forecast-math changes.

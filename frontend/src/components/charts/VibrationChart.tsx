@@ -1,14 +1,17 @@
 import { AreaChart, Area, CartesianGrid, Line, ReferenceLine, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useSensorData } from '../../hooks/useSensorData'
 import { useForecast } from '../../hooks/useForecast'
+import { useDrift } from '../../hooks/useDrift'
 import { combineHistoryAndForecast, nowBoundaryMs } from '../../lib/forecastOverlay'
 import ChartLegend from './ChartLegend'
+import DriftBadge from './DriftBadge'
 
 const FORECAST_HORIZON = '15m'
 
 export default function VibrationChart() {
   const { data } = useSensorData('vibration_rms')
   const { forecast } = useForecast('vibration', '1h', FORECAST_HORIZON)
+  const { drift } = useDrift('vibration')
   const latest = data.length ? data[data.length - 1].value : null
   const rows = combineHistoryAndForecast(data, forecast, 'vibration', FORECAST_HORIZON)
   const nowMs = nowBoundaryMs(data)
@@ -95,6 +98,7 @@ export default function VibrationChart() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+      <DriftBadge result={drift} />
     </div>
   )
 }

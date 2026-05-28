@@ -114,6 +114,23 @@ def test_time_to_threshold_specific_enums():
     }
 
 
+def test_detect_drift_specific_enums():
+    """Explicit check for the Phase 3 tool, on top of the generic checks."""
+    schemas = _tool_by_name()
+    assert "detect_drift" in schemas
+    params = schemas["detect_drift"]["function"]["parameters"]
+    props = params["properties"]
+    assert props["metric"]["enum"] == [
+        "temperature",
+        "humidity",
+        "pressure",
+        "vibration",
+        "light",
+    ]
+    assert props["baseline_window"]["enum"] == ["1h", "6h", "24h", "7d"]
+    assert set(params["required"]) == {"metric", "baseline_window"}
+
+
 def test_forecast_accuracy_specific_enums():
     """Explicit check for the Phase 5 tool, on top of the generic checks."""
     schemas = _tool_by_name()
