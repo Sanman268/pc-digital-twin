@@ -410,9 +410,7 @@ def execute_detect_drift(p: DetectDriftParams) -> dict[str, Any]:
     assert result.current_session_end is not None
 
     drift_score_out: Any = (
-        round(result.drift_score, 2)
-        if math.isfinite(result.drift_score)
-        else "inf"
+        round(result.drift_score, 2) if math.isfinite(result.drift_score) else "inf"
     )
     z_value_out: Any = (
         round(result.z_value, 2) if math.isfinite(result.z_value) else "inf"

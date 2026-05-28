@@ -149,10 +149,7 @@ def _baseline_slope_stats(
     min_points: int,
 ) -> tuple[Optional[float], Optional[float]]:
     """Per-session-slope mean and stddev across historical sessions."""
-    slopes = [
-        _session_slope_per_hour(s, min_points)
-        for s in historical_sessions
-    ]
+    slopes = [_session_slope_per_hour(s, min_points) for s in historical_sessions]
     slopes_valid = [s for s in slopes if s is not None]
     n = len(slopes_valid)
     if n < 2:

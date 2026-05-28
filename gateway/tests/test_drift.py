@@ -45,7 +45,7 @@ def _noisy_flat(
     state = seed
     for i in range(n):
         state = (state * 1103515245 + 12345) & 0x7FFFFFFF
-        noise = ((state / 0x7FFFFFFF) - 0.5)  # in [-0.5, 0.5)
+        noise = (state / 0x7FFFFFFF) - 0.5  # in [-0.5, 0.5)
         pts.append(
             {"time": start + timedelta(seconds=step_s * i), "value": base + noise}
         )
